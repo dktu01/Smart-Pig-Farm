@@ -446,11 +446,6 @@ const filteredBabi = babiList.filter((b) => {
               </tbody>
             </table>
           </div>
-
-                ))}
-              </tbody>
-            </table>
-          </div>
         </div>
       )}
 
@@ -509,7 +504,7 @@ const filteredBabi = babiList.filter((b) => {
                     >
                       {kandangList.map(k => (
                         <option key={k.id} value={k.id}>{k.nama_kandang}</option>
-     
+                      ))}
                     </select>
                   </div>
                   <div>
