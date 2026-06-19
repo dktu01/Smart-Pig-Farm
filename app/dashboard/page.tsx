@@ -1,0 +1,290 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { 
+  PiggyBank, 
+  Home, 
+  Activity, 
+  Syringe, 
+  SprayCan, 
+  Heart,
+  Baby,
+  AlertTriangle,
+  Bell,
+  CheckCircle2
+} from 'lucide-react';
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer 
+} from 'recharts';
+
+const mockChartData = [
+  { name: 'Jan', populasi: 120, sakit: 5 },
+  { name: 'Feb', populasi: 135, sakit: 8 },
+  { name: 'Mar', populasi: 150, sakit: 3 },
+  { name: 'Apr', populasi: 180, sakit: 12 },
+  { name: 'Mei', populasi: 190, sakit: 4 },
+  { name: 'Jun', populasi: 210, sakit: 2 },
+];
+
+export default function DashboardPage() {
+  const router = useRouter();
+  const [statsData, setStatsData] = useState({
+    totalBabi: 0,
+    totalKandang: 0,
+    healthyPigs: 0,
+    sickPigs: 0,
+  });
+  
+  const [remindersList, setRemindersList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Fetch counts and upcoming events concurrently
+    const [
+      babiRes,
+      kandangRes,
+      healthyRes,
+      sickRes,
+      vaksinRes,
+      sanitasiRes,
+      lahirRes
+    ] = await Promise.all([
+      supabase.from('babi').select('*', { count: 'exact', head: true }),
+      supabase.from('kandang').select('*', { count: 'exact', head: true }),
+      supabase.from('babi').select('*', { count: 'exact', head: true }).eq('status_kesehatan', 'Sehat'),
+      supabase.from('babi').select('*', { count: 'exact', head: true }).neq('status_kesehatan', 'Sehat'),
+      supabase.from('vaksinasi').select('*, babi:babi_id(kode_babi)').not('tanggal_berikutnya', 'is', null).gte('tanggal_berikutnya', today).order('tanggal_berikutnya').limit(5),
+      supabase.from('sanitasi').select('*, kandang:kandang_id(nama_kandang)').not('tanggal_berikutnya', 'is', null).gte('tanggal_berikutnya', today).order('tanggal_berikutnya').limit(5),
+      supabase.from('reproduksi').select('*, babi_betina:babi_betina_id(kode_babi)').eq('status_bunting', true).is('tanggal_melahirkan', null).not('estimasi_lahir', 'is', null).gte('estimasi_lahir', today).order('estimasi_lahir').limit(5)
+    ]);
+
+    setStatsData({
+      totalBabi: babiRes.count || 0,
+      totalKandang: kandangRes.count || 0,
+      healthyPigs: healthyRes.count || 0,
+      sickPigs: sickRes.count || 0,
+    });
+
+    const formattedReminders: any[] = [];
+    
+    if (vaksinRes.data) {
+      vaksinRes.data.forEach((v: any) => {
+        formattedReminders.push({
+          id: `v-${v.id}`,
+          title: `Vaksin ${v.jenis_vaksin} - ${v.babi?.kode_babi || 'Massal'}`,
+          time: v.tanggal_berikutnya === today ? 'Hari ini' : new Date(v.tanggal_berikutnya).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'}),
+          dateObj: new Date(v.tanggal_berikutnya),
+          type: 'vaccine',
+          icon: Syringe,
+          color: 'text-blue-500',
+          bg: 'bg-blue-500/10'
+        });
+      });
+    }
+
+    if (sanitasiRes.data) {
+      sanitasiRes.data.forEach((s: any) => {
+        formattedReminders.push({
+          id: `s-${s.id}`,
+          title: `Sanitasi ${s.kandang?.nama_kandang || 'Kandang'}`,
+          time: s.tanggal_berikutnya === today ? 'Hari ini' : new Date(s.tanggal_berikutnya).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'}),
+          dateObj: new Date(s.tanggal_berikutnya),
+          type: 'sanitation',
+          icon: SprayCan,
+          color: 'text-emerald-500',
+          bg: 'bg-emerald-500/10'
+        });
+      });
+    }
+
+    if (lahirRes.data) {
+      lahirRes.data.forEach((l: any) => {
+        formattedReminders.push({
+          id: `l-${l.id}`,
+          title: `Estimasi Lahir: ${l.babi_betina?.kode_babi}`,
+          time: l.estimasi_lahir === today ? 'Hari ini' : new Date(l.estimasi_lahir).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'}),
+          dateObj: new Date(l.estimasi_lahir),
+          type: 'birth',
+          icon: Baby,
+          color: 'text-pink-500',
+          bg: 'bg-pink-500/10'
+        });
+      });
+    }
+
+    formattedReminders.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+    
+    setRemindersList(formattedReminders.slice(0, 5));
+    setLoading(false);
+  };
+
+  const stats = [
+    { name: 'Total Babi', value: loading ? '...' : statsData.totalBabi, icon: PiggyBank, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+    { name: 'Total Kandang', value: loading ? '...' : statsData.totalKandang, icon: Home, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    { name: 'Babi Sehat', value: loading ? '...' : statsData.healthyPigs, icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    { name: 'Babi Sakit', value: loading ? '...' : statsData.sickPigs, icon: Activity, color: 'text-destructive', bg: 'bg-destructive/10' },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+        <p className="text-muted-foreground mt-2">
+          Pantau kesehatan dan aktivitas farm Anda secara real-time.
+        </p>
+      </div>
+
+      {/* Warning Alert if any sick pigs */}
+      {!loading && statsData.sickPigs > 0 && (
+        <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4 flex items-start gap-4 shadow-sm">
+          <div className="bg-destructive/20 p-2 rounded-full flex-shrink-0">
+            <AlertTriangle className="w-5 h-5 text-destructive" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-destructive">Perhatian Kesehatan!</h3>
+            <p className="text-sm text-destructive/80 mt-1">
+              Terdapat <strong>{statsData.sickPigs} ekor babi</strong> yang terindikasi sakit saat ini. Mohon segera cek menu Kesehatan untuk melakukan penanganan lebih lanjut.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat) => (
+          <Link
+            key={stat.name}
+            href={
+              stat.name === 'Total Babi'
+                ? '/dashboard/babi'
+                : stat.name === 'Total Kandang'
+                ? '/dashboard/kandang'
+                : stat.name === 'Babi Sehat'
+                ? '/dashboard/babi?filter=sehat'
+                : '/dashboard/babi?filter=sakit'
+            }
+            className="bg-card border border-border rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">{stat.name}</p>
+                <h3 className="text-3xl font-bold text-foreground">{stat.value}</h3>
+              </div>
+              <div className={`p-3 rounded-full ${stat.bg}`}>
+                <stat.icon className={`w-6 h-6 ${stat.color}`} />
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Chart / Activity Area */}
+        <div className="lg:col-span-2 bg-card border border-border rounded-xl shadow-sm p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold text-foreground">Status Kesehatan Farm</h2>
+            <select className="bg-background border border-input rounded-lg text-sm px-3 py-1.5 text-foreground focus:ring-2 focus:ring-primary focus:border-transparent">
+              <option>Bulan Ini</option>
+              <option>Tahun Ini</option>
+            </select>
+          </div>
+          
+          <div className="h-[300px] w-full mt-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={mockChartData}
+                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="colorPopulasi" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorSakit" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'hsl(var(--muted-foreground))', fontSize: 12}} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: 'hsl(var(--muted-foreground))', fontSize: 12}} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }}
+                  itemStyle={{ color: 'hsl(var(--foreground))' }}
+                />
+                <Area type="monotone" dataKey="populasi" name="Total Populasi" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorPopulasi)" />
+                <Area type="monotone" dataKey="sakit" name="Kasus Sakit" stroke="#ef4444" strokeWidth={3} fillOpacity={1} fill="url(#colorSakit)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Reminders Panel */}
+        <div className="bg-card border border-border rounded-xl shadow-sm p-6 flex flex-col">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <Bell className="w-5 h-5 text-primary" />
+              Pengingat Jadwal
+            </h2>
+          </div>
+
+          <div className="space-y-4 flex-1">
+            {loading ? (
+              <div className="flex justify-center py-10">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+              </div>
+            ) : remindersList.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground">
+                <CheckCircle2 className="w-8 h-8 mx-auto mb-2 opacity-30 text-emerald-500" />
+                <p className="text-sm">Tidak ada jadwal mendesak saat ini.</p>
+              </div>
+            ) : (
+              remindersList.map((reminder) => (
+                <div
+                  key={reminder.id}
+                  className="flex items-start gap-4 p-3 rounded-lg hover:bg-secondary transition-colors border border-transparent hover:border-border cursor-pointer"
+                  onClick={() => {
+                    // Simple navigation based on reminder type
+                    if (reminder.type === 'vaccine' || reminder.type === 'birth') {
+                      router.push('/dashboard/babi');
+                    } else if (reminder.type === 'sanitation') {
+                      router.push('/dashboard/kandang');
+                    } else {
+                      router.push('/dashboard');
+                    }
+                  }}
+                >
+                  <div className={`p-2.5 rounded-full mt-1 ${reminder.bg} flex-shrink-0`}>
+                    <reminder.icon className={`w-4 h-4 ${reminder.color}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate" title={reminder.title}>{reminder.title}</p>
+                    <p className={`text-xs font-semibold mt-0.5 ${reminder.time === 'Hari ini' ? 'text-destructive' : 'text-primary'}`}>
+                      {reminder.time}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
