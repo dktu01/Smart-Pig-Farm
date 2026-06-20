@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { PiggyBank, Plus, Search, Activity, Calendar, Heart, MoreHorizontal, X, Stethoscope, Trash2, Edit, Syringe, MapPin } from 'lucide-react';
+import { PiggyBank, Plus, Search, Calendar, Heart, MoreHorizontal, X, Stethoscope, Trash2, Edit, Syringe, MapPin, ChevronRight } from 'lucide-react';
 
 // Type definitions based on schema
 type Kandang = {
@@ -18,7 +18,8 @@ type Babi = {
   status_kesehatan: string;
   status_reproduksi: string;
   kandang_id: string;
-  kandang: Kandang; // Joined data
+  kandang: Kandang;
+  vaksinasi?: { id: string }[]; // count from join
 };
 
 export default function DataBabiPage() {
@@ -35,9 +36,10 @@ export default function DataBabiPage() {
     tanggal_berikutnya: '',
     catatan: ''
   });
-  // Health modal state
   const [isHealthModalOpen, setIsHealthModalOpen] = useState(false);
   const [selectedBabi, setSelectedBabi] = useState<Babi | null>(null);
+  // Dropdown menu state per row
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   // Add Babi Form
   // Add Babi Form
@@ -80,12 +82,13 @@ export default function DataBabiPage() {
       setFormData(prev => ({ ...prev, kandang_id: kandangData[0].id }));
     }
 
-    // Fetch Babi with Kandang relation
+    // Fetch Babi with Kandang relation AND vaksinasi count
     const { data: babiData, error } = await supabase
       .from('babi')
       .select(`
         *,
-        kandang:kandang_id(id, nama_kandang)
+        kandang:kandang_id(id, nama_kandang),
+        vaksinasi(id)
       `)
       .order('created_at', { ascending: false });
 
@@ -207,7 +210,12 @@ export default function DataBabiPage() {
       alert('Gagal menyimpan vaksinasi: ' + vaccError.message);
       return;
     }
-    // optionally update local state if you store vaccination info
+    // Update local vaksinasi count
+    setBabiList(prev => prev.map(b =>
+      b.id === selectedBabi.id
+        ? { ...b, vaksinasi: [...(b.vaksinasi || []), { id: 'new' }] }
+        : b
+    ));
     setIsVaccinationModalOpen(false);
     setVaccinationData({ jenis_vaksin: '', tanggal_vaksin: new Date().toISOString().split('T')[0], tanggal_berikutnya: '', catatan: '' });
     alert('Data vaksinasi berhasil disimpan!');
@@ -282,6 +290,15 @@ export default function DataBabiPage() {
     const now = new Date();
     const months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
     return months === 0 ? '< 1 Bulan' : `${months} Bulan`;
+  };
+
+  // Helper: get vaksin status badge config from count
+  const getVaksinStatus = (babi: Babi) => {
+    const count = babi.vaksinasi?.length ?? 0;
+    if (count === 0) return { label: 'Belum Vaksin', className: 'bg-destructive/10 text-destructive border-destructive/20' };
+    if (count === 1) return { label: 'Vaksinasi 1×', className: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20 dark:text-yellow-400' };
+    if (count === 2) return { label: 'Vaksinasi 2×', className: 'bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400' };
+    return { label: 'Vaksin Lengkap', className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
   };
 
   // Compute filtered list based on selected filters
@@ -378,97 +395,110 @@ export default function DataBabiPage() {
         </div>
       ) : (
         <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden flex flex-col">
+          {/* Close dropdown on outside click */}
+          {openDropdownId && (
+            <div className="fixed inset-0 z-10" onClick={() => setOpenDropdownId(null)} />
+          )}
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-secondary/50 text-muted-foreground uppercase text-xs font-semibold tracking-wider">
                 <tr>
                   <th className="px-6 py-4">Identitas</th>
                   <th className="px-6 py-4">Profil</th>
-                  <th className="px-6 py-4">Kesehatan</th>
+                  <th className="px-6 py-4">Status Vaksin</th>
                   <th className="px-6 py-4">Reproduksi</th>
                   <th className="px-6 py-4 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filteredBabi.map((babi) => (
-                  <tr 
-                    key={babi.id} 
-                    onClick={() => { if (window.innerWidth < 768) window.location.href = `/dashboard/babi/${babi.id}`; }}
-                    className="hover:bg-secondary/30 transition-colors md:cursor-default cursor-pointer"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
-                          <PiggyBank className="w-5 h-5" />
+                {filteredBabi.map((babi) => {
+                  const vaksinStatus = getVaksinStatus(babi);
+                  return (
+                    <tr
+                      key={babi.id}
+                      onClick={() => { window.location.href = `/dashboard/babi/${babi.id}`; }}
+                      className="hover:bg-secondary/30 transition-colors cursor-pointer group"
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+                            <PiggyBank className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-foreground text-base">{babi.kode_babi}</p>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                              <MapPin className="w-3 h-3" /> {babi.kandang?.nama_kandang || '-'}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-bold text-foreground text-base">{babi.kode_babi}</p>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                            <MapPin className="w-3 h-3" /> {babi.kandang?.nama_kandang || '-'}
-                          </p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="font-medium text-foreground">{babi.jenis_kelamin}</span>
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Calendar className="w-3 h-3" /> {calculateAge(babi.tanggal_lahir)}
+                          </span>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-1">
-                        <span className="font-medium text-foreground">{babi.jenis_kelamin}</span>
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Calendar className="w-3 h-3" /> {calculateAge(babi.tanggal_lahir)}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${vaksinStatus.className}`}>
+                          <Syringe className="w-3 h-3" />
+                          {vaksinStatus.label}
                         </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getHealthColor(babi.status_kesehatan)}`}>
-                        {babi.status_kesehatan === 'Sehat' ? <Activity className="w-3 h-3 mr-1" /> : <Stethoscope className="w-3 h-3 mr-1" />}
-                        {babi.status_kesehatan}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center gap-1.5 text-sm text-foreground font-medium">
-                        <Heart className="w-4 h-4 text-pink-500" />
-                        {babi.status_reproduksi || '-'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="hidden md:flex items-center justify-end gap-1.5">
-                        <a
-                          href={`/dashboard/babi/${babi.id}`}
-                          className="text-primary bg-primary/10 hover:bg-primary/20 p-2 rounded-lg transition-colors"
-                          title="Lihat Detail"
-                          onClick={e => e.stopPropagation()}
-                        >
-                          <MoreHorizontal className="w-4 h-4" />
-                        </a>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setSelectedBabi(babi); setIsVaccinationModalOpen(true); }}
-                          className="text-primary bg-primary/10 hover:bg-primary/20 p-2 rounded-lg transition-colors border border-transparent"
-                          title="Vaksinasi"
-                        >
-                          <Syringe className="w-4 h-4" />
-                        </button>
-                        <div className="w-px h-6 bg-border mx-1"></div>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); openEditModal(babi); }}
-                          className="text-muted-foreground hover:text-foreground p-2 rounded-lg hover:bg-secondary transition-colors"
-                          title="Edit"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDeleteBabi(babi.id, babi.kode_babi); }}
-                          className="text-muted-foreground hover:text-destructive p-2 rounded-lg hover:bg-destructive/10 transition-colors"
-                          title="Hapus"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                      {/* Mobile: show arrow indicator */}
-                      <div className="flex md:hidden justify-end text-muted-foreground">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center gap-1.5 text-sm text-foreground font-medium">
+                          <Heart className="w-4 h-4 text-pink-500" />
+                          {babi.status_reproduksi || '-'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-end gap-1.5" onClick={e => e.stopPropagation()}>
+                          {/* Vaksin button — always visible */}
+                          <button
+                            onClick={() => { setSelectedBabi(babi); setIsVaccinationModalOpen(true); }}
+                            className="flex items-center gap-1.5 text-primary bg-primary/10 hover:bg-primary/20 px-2.5 py-1.5 rounded-lg transition-colors text-xs font-semibold border border-primary/20"
+                            title="Catat Vaksinasi"
+                          >
+                            <Syringe className="w-3.5 h-3.5" />
+                            Vaksin
+                          </button>
+                          {/* ... dropdown for Edit & Delete */}
+                          <div className="relative">
+                            <button
+                              onClick={() => setOpenDropdownId(openDropdownId === babi.id ? null : babi.id)}
+                              className="text-muted-foreground hover:text-foreground p-2 rounded-lg hover:bg-secondary transition-colors"
+                              title="Opsi lainnya"
+                            >
+                              <MoreHorizontal className="w-4 h-4" />
+                            </button>
+                            {openDropdownId === babi.id && (
+                              <div className="absolute right-0 top-full mt-1 w-40 bg-card border border-border rounded-xl shadow-xl z-20 overflow-hidden">
+                                <button
+                                  onClick={() => { setOpenDropdownId(null); openEditModal(babi); }}
+                                  className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
+                                >
+                                  <Edit className="w-4 h-4 text-muted-foreground" />
+                                  Edit Data
+                                </button>
+                                <div className="h-px bg-border mx-2" />
+                                <button
+                                  onClick={() => { setOpenDropdownId(null); handleDeleteBabi(babi.id, babi.kode_babi); }}
+                                  className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  Hapus
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          {/* Mobile row arrow hint */}
+                          <ChevronRight className="w-4 h-4 text-muted-foreground/40 md:hidden" />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
