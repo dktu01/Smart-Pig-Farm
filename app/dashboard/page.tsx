@@ -125,26 +125,13 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Home</h1>
         <p className="text-muted-foreground mt-2">
           Pantau kesehatan dan aktivitas farm Anda secara real-time.
         </p>
       </div>
 
-      {/* Warning Alert if any sick pigs */}
-      {!loading && statsData.sickPigs > 0 && (
-        <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4 flex items-start gap-4 shadow-sm">
-          <div className="bg-destructive/20 p-2 rounded-full flex-shrink-0">
-            <AlertTriangle className="w-5 h-5 text-destructive" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-destructive">Perhatian Kesehatan!</h3>
-            <p className="text-sm text-destructive/80 mt-1">
-              Terdapat <strong>{statsData.sickPigs} ekor babi</strong> yang terindikasi sakit saat ini. Mohon segera cek menu Kesehatan untuk melakukan penanganan lebih lanjut.
-            </p>
-          </div>
-        </div>
-      )}
+
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

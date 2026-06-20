@@ -100,6 +100,9 @@ export default function KandangPage() {
         setKandangList([newKandang, ...kandangList]);
         setIsAddModalOpen(false);
         setFormData({ nama_kandang: '', jenis_kandang: 'Indukan', kapasitas: 10 });
+        // Auto-show QR modal for the newly created kandang
+        setSelectedKandang(newKandang as Kandang);
+        setIsQRModalOpen(true);
       }
     }
   };
@@ -238,29 +241,20 @@ export default function KandangPage() {
                 </div>
               </div>
 
-              <div className="p-3 border-t border-border flex flex-col gap-2">
+              <div className="p-3 border-t border-border flex gap-2">
                 <a 
                   href={`/dashboard/kandang/${kandang.id}`}
-                  className="flex items-center justify-center w-full py-2 text-sm font-medium text-foreground bg-secondary hover:bg-secondary/80 rounded-lg transition-colors text-center border border-transparent"
+                  className="flex items-center justify-center flex-1 py-2 text-sm font-medium text-foreground bg-secondary hover:bg-secondary/80 rounded-lg transition-colors text-center border border-transparent"
                 >
-                  Detail Kandang & Babi
+                  Detail Kandang
                 </a>
-                <div className="flex gap-2">
-                  <a
-                    href={`/dashboard/kandang/${kandang.id}`}
-                    className="flex items-center justify-center gap-1.5 flex-1 py-2 text-sm font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 rounded-lg transition-colors"
-                  >
-                    <SprayCan className="w-4 h-4" />
-                    Sanitasi
-                  </a>
-                  <button 
-                    onClick={() => openQRModal(kandang)}
-                    className="flex items-center justify-center gap-1.5 flex-1 py-2 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors border border-transparent"
-                  >
-                    <QrCode className="w-4 h-4" />
-                    QR Code
-                  </button>
-                </div>
+                <button 
+                  onClick={() => openQRModal(kandang)}
+                  className="flex items-center justify-center gap-1.5 flex-1 py-2 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors border border-transparent"
+                >
+                  <QrCode className="w-4 h-4" />
+                  QR Code
+                </button>
               </div>
             </div>
           ))}
@@ -363,10 +357,9 @@ export default function KandangPage() {
               </p>
               
               <div className="inline-block p-4 border-4 border-gray-900 rounded-xl mb-8 bg-white">
-                {/* Generate QR using an API for simplicity. The URL payload is the kandang ID or a specific route */}
-                {/* e.g., https://smart-pig-farm.com/scan?id=... */}
+                {/* QR Code points to the kandang detail page, using dynamic origin so it works on localhost AND Vercel */}
                 <img 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https://app.smartpigfarm.com/dashboard/kandang/${selectedKandang.id}&margin=0`} 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${typeof window !== 'undefined' ? window.location.origin : ''}/dashboard/kandang/${selectedKandang.id}&margin=0`} 
                   alt={`QR Code ${selectedKandang.nama_kandang}`}
                   className="w-64 h-64 mx-auto"
                 />

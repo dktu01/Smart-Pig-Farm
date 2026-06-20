@@ -391,7 +391,11 @@ export default function DataBabiPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {filteredBabi.map((babi) => (
-                  <tr key={babi.id} className="hover:bg-secondary/30 transition-colors">
+                  <tr 
+                    key={babi.id} 
+                    onClick={() => { if (window.innerWidth < 768) window.location.href = `/dashboard/babi/${babi.id}`; }}
+                    className="hover:bg-secondary/30 transition-colors md:cursor-default cursor-pointer"
+                  >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
@@ -426,22 +430,17 @@ export default function DataBabiPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => {
-                            setSelectedBabi(babi);
-                            setIsHealthModalOpen(true);
-                          }}
-                          className="text-destructive bg-destructive/10 hover:bg-destructive/20 p-2 rounded-lg transition-colors border border-transparent"
-                          title="Catat Medis"
+                      <div className="hidden md:flex items-center justify-end gap-1.5">
+                        <a
+                          href={`/dashboard/babi/${babi.id}`}
+                          className="text-primary bg-primary/10 hover:bg-primary/20 p-2 rounded-lg transition-colors"
+                          title="Lihat Detail"
+                          onClick={e => e.stopPropagation()}
                         >
-                          <Stethoscope className="w-4 h-4" />
-                        </button>
+                          <MoreHorizontal className="w-4 h-4" />
+                        </a>
                         <button
-                          onClick={() => {
-                            setSelectedBabi(babi);
-                            setIsVaccinationModalOpen(true);
-                          }}
+                          onClick={(e) => { e.stopPropagation(); setSelectedBabi(babi); setIsVaccinationModalOpen(true); }}
                           className="text-primary bg-primary/10 hover:bg-primary/20 p-2 rounded-lg transition-colors border border-transparent"
                           title="Vaksinasi"
                         >
@@ -449,19 +448,23 @@ export default function DataBabiPage() {
                         </button>
                         <div className="w-px h-6 bg-border mx-1"></div>
                         <button
-                          onClick={() => openEditModal(babi)}
+                          onClick={(e) => { e.stopPropagation(); openEditModal(babi); }}
                           className="text-muted-foreground hover:text-foreground p-2 rounded-lg hover:bg-secondary transition-colors"
                           title="Edit"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDeleteBabi(babi.id, babi.kode_babi)}
+                          onClick={(e) => { e.stopPropagation(); handleDeleteBabi(babi.id, babi.kode_babi); }}
                           className="text-muted-foreground hover:text-destructive p-2 rounded-lg hover:bg-destructive/10 transition-colors"
                           title="Hapus"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
+                      </div>
+                      {/* Mobile: show arrow indicator */}
+                      <div className="flex md:hidden justify-end text-muted-foreground">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                       </div>
                     </td>
                   </tr>

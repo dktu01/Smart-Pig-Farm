@@ -82,7 +82,7 @@ export default function DetailKandangPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-28 md:pb-0">
       {/* Header */}
       <div className="flex items-center gap-4">
         <button 
@@ -225,6 +225,24 @@ export default function DetailKandangPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* ===== STICKY BOTTOM BAR — Mobile Only ===== */}
+      <div className="fixed bottom-0 left-0 right-0 md:hidden z-40 bg-card/95 backdrop-blur border-t border-border px-4 py-3 flex gap-3 shadow-2xl">
+        <button
+          onClick={() => { setActiveTab('sanitasi'); setIsSanitasiModalOpen(true); }}
+          className="flex-1 flex items-center justify-center gap-2 py-3 bg-emerald-500 text-white rounded-xl font-semibold text-sm shadow-sm active:scale-95 transition-transform"
+        >
+          <SprayCan className="w-4 h-4" />
+          Catat Sanitasi
+        </button>
+        <a
+          href="/dashboard/babi"
+          className="flex-1 flex items-center justify-center gap-2 py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm shadow-sm active:scale-95 transition-transform"
+        >
+          <Plus className="w-4 h-4" />
+          Kelola Babi
+        </a>
       </div>
 
       {isSanitasiModalOpen && (

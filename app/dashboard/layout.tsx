@@ -16,7 +16,7 @@ import { supabase } from '@/lib/supabase';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 const menuItems = [
-  { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
+  { name: 'Home', icon: LayoutDashboard, href: '/dashboard' },
   { name: 'Kandang', icon: Home, href: '/dashboard/kandang' },
   { name: 'Data Babi', icon: PiggyBank, href: '/dashboard/babi' },
   { name: 'Jadwal', icon: Calendar, href: '/dashboard/jadwal' },
@@ -125,7 +125,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </button>
           <div className="flex items-center gap-2">
             <PiggyBank className="w-6 h-6 text-primary" />
-            <span className="font-bold text-foreground">Dashboard</span>
+            <span className="font-bold text-foreground">Smart Pig Farm</span>
           </div>
           <div className="w-6" /> {/* Spacer for centering */}
         </header>
