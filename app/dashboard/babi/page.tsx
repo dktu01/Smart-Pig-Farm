@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { PiggyBank, Plus, Search, Activity, Calendar, Heart, MoreHorizontal, X, Stethoscope, Trash2, Edit } from 'lucide-react';
+import { PiggyBank, Plus, Search, Activity, Calendar, Heart, MoreHorizontal, X, Stethoscope, Trash2, Edit, Syringe, MapPin } from 'lucide-react';
 
 // Type definitions based on schema
 type Kandang = {
@@ -382,11 +382,9 @@ export default function DataBabiPage() {
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-secondary/50 text-muted-foreground uppercase text-xs font-semibold tracking-wider">
                 <tr>
-                  <th className="px-6 py-4">Kode Babi</th>
-                  <th className="px-6 py-4">Kandang</th>
-                  <th className="px-6 py-4">Jenis Kelamin</th>
-                  <th className="px-6 py-4">Umur</th>
-                  <th className="px-6 py-4">Status Kesehatan</th>
+                  <th className="px-6 py-4">Identitas</th>
+                  <th className="px-6 py-4">Profil</th>
+                  <th className="px-6 py-4">Kesehatan</th>
                   <th className="px-6 py-4">Reproduksi</th>
                   <th className="px-6 py-4 text-right">Aksi</th>
                 </tr>
@@ -394,19 +392,26 @@ export default function DataBabiPage() {
               <tbody className="divide-y divide-border">
                 {filteredBabi.map((babi) => (
                   <tr key={babi.id} className="hover:bg-secondary/30 transition-colors">
-                    <td className="px-6 py-4 font-bold text-foreground">
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                          <PiggyBank className="w-4 h-4" />
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+                          <PiggyBank className="w-5 h-5" />
                         </div>
-                        {babi.kode_babi}
+                        <div>
+                          <p className="font-bold text-foreground text-base">{babi.kode_babi}</p>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                            <MapPin className="w-3 h-3" /> {babi.kandang?.nama_kandang || '-'}
+                          </p>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-foreground">{babi.kandang?.nama_kandang || '-'}</td>
-                    <td className="px-6 py-4 text-muted-foreground">{babi.jenis_kelamin}</td>
-                    <td className="px-6 py-4 text-muted-foreground flex items-center gap-1.5">
-                      <Calendar className="w-4 h-4 opacity-70" />
-                      {calculateAge(babi.tanggal_lahir)}
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1">
+                        <span className="font-medium text-foreground">{babi.jenis_kelamin}</span>
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Calendar className="w-3 h-3" /> {calculateAge(babi.tanggal_lahir)}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getHealthColor(babi.status_kesehatan)}`}>
@@ -415,44 +420,47 @@ export default function DataBabiPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                        <Heart className="w-4 h-4 text-pink-500 opacity-70" />
+                      <span className="inline-flex items-center gap-1.5 text-sm text-foreground font-medium">
+                        <Heart className="w-4 h-4 text-pink-500" />
                         {babi.status_reproduksi || '-'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => {
                             setSelectedBabi(babi);
                             setIsHealthModalOpen(true);
                           }}
-                          className="text-destructive hover:bg-destructive/10 px-3 py-1.5 rounded-md font-medium transition-colors border border-transparent"
+                          className="text-destructive bg-destructive/10 hover:bg-destructive/20 p-2 rounded-lg transition-colors border border-transparent"
+                          title="Catat Medis"
                         >
-                          Medis
+                          <Stethoscope className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => {
                             setSelectedBabi(babi);
                             setIsVaccinationModalOpen(true);
                           }}
-                          className="text-primary hover:bg-primary/10 px-3 py-1.5 rounded-md font-medium transition-colors border border-transparent"
+                          className="text-primary bg-primary/10 hover:bg-primary/20 p-2 rounded-lg transition-colors border border-transparent"
+                          title="Vaksinasi"
                         >
-                          Vaksin
+                          <Syringe className="w-4 h-4" />
                         </button>
+                        <div className="w-px h-6 bg-border mx-1"></div>
                         <button
                           onClick={() => openEditModal(babi)}
-                          className="text-muted-foreground hover:text-primary p-1.5 rounded-md hover:bg-secondary transition-colors"
+                          className="text-muted-foreground hover:text-foreground p-2 rounded-lg hover:bg-secondary transition-colors"
                           title="Edit"
                         >
-                          <Edit className="w-5 h-5" />
+                          <Edit className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteBabi(babi.id, babi.kode_babi)}
-                          className="text-destructive hover:bg-destructive/10 p-1.5 rounded-md transition-colors"
+                          className="text-muted-foreground hover:text-destructive p-2 rounded-lg hover:bg-destructive/10 transition-colors"
                           title="Hapus"
                         >
-                          <Trash2 className="w-5 h-5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
