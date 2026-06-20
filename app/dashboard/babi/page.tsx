@@ -25,7 +25,7 @@ export default function DataBabiPage() {
   const [babiList, setBabiList] = useState<Babi[]>([]);
   const [kandangList, setKandangList] = useState<Kandang[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isVaccinationModalOpen, setIsVaccinationModalOpen] = useState(false);
@@ -68,13 +68,13 @@ export default function DataBabiPage() {
 
   const fetchData = async () => {
     setLoading(true);
-    
+
     // Fetch Kandang for dropdown
     const { data: kandangData } = await supabase
       .from('kandang')
       .select('id, nama_kandang')
       .order('nama_kandang');
-      
+
     if (kandangData) setKandangList(kandangData);
     if (kandangData && kandangData.length > 0 && !formData.kandang_id) {
       setFormData(prev => ({ ...prev, kandang_id: kandangData[0].id }));
@@ -88,19 +88,19 @@ export default function DataBabiPage() {
         kandang:kandang_id(id, nama_kandang)
       `)
       .order('created_at', { ascending: false });
-    
+
     if (error) {
       console.error('Error fetching babi:', error);
     } else {
       setBabiList(babiData as any);
     }
-    
+
     setLoading(false);
   };
 
   const handleAddBabi = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (isEditMode && selectedBabi) {
       // Edit Mode
       const { data, error } = await supabase
@@ -110,8 +110,7 @@ export default function DataBabiPage() {
           jenis_kelamin: formData.jenis_kelamin,
           tanggal_lahir: formData.tanggal_lahir,
           kandang_id: formData.kandang_id,
-          status_reproduksi: formData.status_reproduksi,
-          status_kesehatan: formData.status_kesehatan
+          status_reproduksi: formData.status_reproduksi
         })
         .eq('id', selectedBabi.id)
         .select(`
@@ -122,7 +121,7 @@ export default function DataBabiPage() {
       if (error) {
         alert('Gagal mengupdate babi: ' + error.message);
       } else {
-        setBabiList(babiList.map(b => b.id === selectedBabi.id ? (data?.[0] || b) as any : b));
+        setBabiList(babiList.map(b => b.id === selectedBabi.id ? data[0] as any : b));
         setIsAddModalOpen(false);
         setIsEditMode(false);
         setSelectedBabi(null);
@@ -132,7 +131,7 @@ export default function DataBabiPage() {
       const { data, error } = await supabase
         .from('babi')
         .insert([
-          { 
+          {
             kode_babi: formData.kode_babi,
             jenis_kelamin: formData.jenis_kelamin,
             tanggal_lahir: formData.tanggal_lahir,
@@ -149,13 +148,11 @@ export default function DataBabiPage() {
       if (error) {
         alert('Gagal menambahkan babi: ' + error.message);
       } else {
-        if (data && data.length > 0) {
-          setBabiList([data[0] as any, ...babiList]);
-        }
+        setBabiList([data[0] as any, ...babiList]);
         setIsAddModalOpen(false);
-        setFormData({ 
-          ...formData, 
-          kode_babi: '', 
+        setFormData({
+          ...formData,
+          kode_babi: '',
           status_reproduksi: 'Belum Kawin'
         });
       }
@@ -170,8 +167,8 @@ export default function DataBabiPage() {
       jenis_kelamin: babi.jenis_kelamin,
       tanggal_lahir: babi.tanggal_lahir,
       kandang_id: babi.kandang_id,
-      status_kesehatan: babi.status_kesehatan || 'Sehat',
-      status_reproduksi: babi.status_reproduksi || 'Belum Kawin',
+      status_kesehatan: babi.status_kesehatan,
+      status_reproduksi: babi.status_reproduksi,
     });
     setIsAddModalOpen(true);
   };
@@ -184,7 +181,7 @@ export default function DataBabiPage() {
     } else if (formData.jenis_kelamin === 'Jantan' && formData.status_reproduksi === 'Siap Kawin') {
       prefix = 'PEJ'; // Pejantan
     }
-    
+
     // Create random 4 digit number
     const randomNum = Math.floor(1000 + Math.random() * 9000);
     setFormData({ ...formData, kode_babi: `${prefix}-${randomNum}` });
@@ -238,7 +235,7 @@ export default function DataBabiPage() {
 
     // 2. Update status kesehatan babi
     const newStatus = healthData.status === 'Sembuh' ? 'Sehat' : `Sakit ${healthData.status}`;
-    
+
     const { error: updateError } = await supabase
       .from('babi')
       .update({ status_kesehatan: newStatus })
@@ -246,9 +243,9 @@ export default function DataBabiPage() {
 
     if (!updateError) {
       // Update local state
-      setBabiList(babiList.map(b => 
-        b.id === selectedBabi.id 
-          ? { ...b, status_kesehatan: newStatus } 
+      setBabiList(babiList.map(b =>
+        b.id === selectedBabi.id
+          ? { ...b, status_kesehatan: newStatus }
           : b
       ));
       setIsHealthModalOpen(false);
@@ -258,7 +255,6 @@ export default function DataBabiPage() {
   };
 
   const getHealthColor = (status: string) => {
-    if (!status) return 'bg-gray-500/10 text-gray-600 border-gray-500/20';
     if (status === 'Sehat') return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
     if (status.includes('Ringan')) return 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
     if (status.includes('Sedang')) return 'bg-orange-500/10 text-orange-600 border-orange-500/20';
@@ -267,7 +263,7 @@ export default function DataBabiPage() {
 
   const handleDeleteBabi = async (id: string, kode: string) => {
     if (!window.confirm(`Apakah Anda yakin ingin menghapus babi dengan kode ${kode}? Semua data terkait (kesehatan, reproduksi) mungkin akan ikut terhapus atau menjadi yatim.`)) return;
-    
+
     const { error } = await supabase
       .from('babi')
       .delete()
@@ -280,27 +276,25 @@ export default function DataBabiPage() {
     }
   };
 
-// Helper to calculate age in months
-const calculateAge = (birthDate: string) => {
-  if (!birthDate) return '-';
-  const start = new Date(birthDate);
-  if (isNaN(start.getTime())) return '-';
-  const now = new Date();
-  const months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
-  return months <= 0 ? '< 1 Bulan' : `${months} Bulan`;
-};
+  // Helper to calculate age in months
+  const calculateAge = (birthDate: string) => {
+    const start = new Date(birthDate);
+    const now = new Date();
+    const months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+    return months === 0 ? '< 1 Bulan' : `${months} Bulan`;
+  };
 
-// Compute filtered list based on selected filters
-const filteredBabi = babiList.filter((b) => {
-  const matchesCategory =
-    categoryFilter === 'Semua' ||
-    (categoryFilter === 'Indukan' && b.status_reproduksi !== 'Belum Kawin');
-  const matchesHealth =
-    healthStatusFilter === 'Semua' ||
-    (healthStatusFilter === 'Sehat' && b.status_kesehatan === 'Sehat') ||
-    (healthStatusFilter === 'Sakit' && b.status_kesehatan !== 'Sehat');
-  return matchesCategory && matchesHealth;
-});
+  // Compute filtered list based on selected filters
+  const filteredBabi = babiList.filter((b) => {
+    const matchesCategory =
+      categoryFilter === 'Semua' ||
+      (categoryFilter === 'Indukan' && b.status_reproduksi !== 'Belum Kawin');
+    const matchesHealth =
+      healthStatusFilter === 'Semua' ||
+      (healthStatusFilter === 'Sehat' && b.status_kesehatan === 'Sehat') ||
+      (healthStatusFilter === 'Sakit' && b.status_kesehatan !== 'Sehat');
+    return matchesCategory && matchesHealth;
+  });
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -308,7 +302,7 @@ const filteredBabi = babiList.filter((b) => {
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Data Babi</h1>
           <p className="text-muted-foreground mt-1">Kelola populasi, detail individu, dan pantau kesehatan ternak.</p>
         </div>
-        <button 
+        <button
           onClick={() => {
             setIsEditMode(false);
             setFormData({ ...formData, kode_babi: '', status_reproduksi: 'Belum Kawin' });
@@ -325,34 +319,34 @@ const filteredBabi = babiList.filter((b) => {
       <div className="flex items-center gap-4 bg-card border border-border p-3 rounded-xl shadow-sm">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input 
-            type="text" 
-            placeholder="Cari kode babi atau nama kandang..." 
+          <input
+            type="text"
+            placeholder="Cari kode babi atau nama kandang..."
             className="w-full pl-9 pr-4 py-2 bg-background border border-input rounded-lg text-sm text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
           />
         </div>
-<select
-  value={categoryFilter}
-  onChange={(e) => setCategoryFilter(e.target.value as 'Semua' | 'Indukan')}
-  className="bg-background border border-input rounded-lg text-sm px-3 py-2 text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
->
-  <option value="Semua">Kategori: Semua</option>
-  <option value="Indukan">Indukan (kawin)</option>
-</select>
-<select
-  value={healthStatusFilter}
-  onChange={(e) => setHealthStatusFilter(e.target.value as 'Semua' | 'Sehat' | 'Sakit')}
-  className="bg-background border border-input rounded-lg text-sm px-3 py-2 text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
->
-  <option value="Semua">Status: Semua</option>
-  <option value="Sehat">Sehat</option>
-  <option value="Sakit">Sakit</option>
-</select>
+        <select
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value as 'Semua' | 'Indukan')}
+          className="bg-background border border-input rounded-lg text-sm px-3 py-2 text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+        >
+          <option value="Semua">Kategori: Semua</option>
+          <option value="Indukan">Indukan (kawin)</option>
+        </select>
+        <select
+          value={healthStatusFilter}
+          onChange={(e) => setHealthStatusFilter(e.target.value as 'Semua' | 'Sehat' | 'Sakit')}
+          className="bg-background border border-input rounded-lg text-sm px-3 py-2 text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+        >
+          <option value="Semua">Status: Semua</option>
+          <option value="Sehat">Sehat</option>
+          <option value="Sakit">Sakit</option>
+        </select>
       </div>
 
       {/* Table Data */}
-            {/* Compute filtered list */}
-      
+      {/* Compute filtered list */}
+
 
 
       {/* Table Data */}
@@ -368,7 +362,7 @@ const filteredBabi = babiList.filter((b) => {
           {kandangList.length === 0 && (
             <p className="text-sm text-destructive mb-4">⚠️ Anda harus membuat kandang terlebih dahulu!</p>
           )}
-          <button 
+          <button
             onClick={() => setIsAddModalOpen(true)}
             disabled={kandangList.length === 0}
             className="text-primary font-medium hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
@@ -411,7 +405,7 @@ const filteredBabi = babiList.filter((b) => {
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getHealthColor(babi.status_kesehatan)}`}>
                         {babi.status_kesehatan === 'Sehat' ? <Activity className="w-3 h-3 mr-1" /> : <Stethoscope className="w-3 h-3 mr-1" />}
-                        {babi.status_kesehatan || 'Tidak ada data'}
+                        {babi.status_kesehatan}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -419,19 +413,10 @@ const filteredBabi = babiList.filter((b) => {
                         <Heart className="w-4 h-4 text-pink-500 opacity-70" />
                         {babi.status_reproduksi || '-'}
                       </span>
-                    </td>
+                    </td>o
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button 
-                          onClick={() => {
-                            setSelectedBabi(babi);
-                            setIsHealthModalOpen(true);
-                          }}
-                          className="text-destructive hover:bg-destructive/10 px-3 py-1.5 rounded-md font-medium transition-colors border border-transparent"
-                        >
-                          Medis
-                        </button>
-                        <button 
+                        <button
                           onClick={() => {
                             setSelectedBabi(babi);
                             setIsVaccinationModalOpen(true);
@@ -440,14 +425,14 @@ const filteredBabi = babiList.filter((b) => {
                         >
                           Vaksin
                         </button>
-                        <button 
+                        <button
                           onClick={() => openEditModal(babi)}
                           className="text-muted-foreground hover:text-primary p-1.5 rounded-md hover:bg-secondary transition-colors"
                           title="Edit"
                         >
                           <Edit className="w-5 h-5" />
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleDeleteBabi(babi.id, babi.kode_babi)}
                           className="text-destructive hover:bg-destructive/10 p-1.5 rounded-md transition-colors"
                           title="Hapus"
@@ -466,312 +451,316 @@ const filteredBabi = babiList.filter((b) => {
 
       {/* Modal Tambah Babi */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-          <div className="bg-card w-full max-w-md rounded-2xl shadow-xl border border-border overflow-hidden">
-            <div className="flex items-center justify-between p-5 border-b border-border bg-secondary/50">
-              <h2 className="text-lg font-semibold text-foreground">
-                {isEditMode ? 'Edit Data Babi' : 'Tambah Data Babi'}
-              </h2>
-              <button 
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+      <div className="bg-card w-full max-w-md rounded-2xl shadow-xl border border-border overflow-hidden">
+        <div className="flex items-center justify-between p-5 border-b border-border bg-secondary/50">
+          <h2 className="text-lg font-semibold text-foreground">
+            {isEditMode ? 'Edit Data Babi' : 'Tambah Data Babi'}
+          </h2>
+          <button
+            onClick={() => setIsAddModalOpen(false)}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {kandangList.length === 0 ? (
+          <div className="p-6 text-center">
+            <p className="text-destructive mb-4">Anda belum memiliki kandang satupun.</p>
+            <a href="/dashboard/kandang" className="text-primary hover:underline font-medium">Buat kandang terlebih dahulu</a>
+          </div>
+        ) : (
+          <form onSubmit={handleAddBabi} className="p-5 space-y-4">
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-medium text-foreground">Kode / Tag Telinga</label>
+                <button
+                  type="button"
+                  onClick={generateCode}
+                  className="text-xs font-medium text-primary hover:underline"
+                >
+                  Generate Otomatis
+                </button>
+              </div>
+              <input
+                type="text"
+                required
+                value={formData.kode_babi}
+                onChange={(e) => setFormData({ ...formData, kode_babi: e.target.value })}
+                className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
+                placeholder="Contoh: PIG-A001"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Kandang</label>
+                <select
+                  required
+                  value={formData.kandang_id}
+                  onChange={(e) => setFormData({ ...formData, kandang_id: e.target.value })}
+                  className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
+                >
+                  {kandangList.map(k => (
+                    <option key={k.id} value={k.id}>{k.nama_kandang}</option>
+                  ))}
+                    </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Jenis Kelamin</label>
+                <select
+                  value={formData.jenis_kelamin}
+                  onChange={(e) => setFormData({ ...formData, jenis_kelamin: e.target.value })}
+                  className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
+                >
+                  <option value="Betina">Betina</option>
+                  <option value="Jantan">Jantan</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Tanggal Lahir / Beli</label>
+                <input
+                  type="date"
+                  required
+                  value={formData.tanggal_lahir}
+                  onChange={(e) => setFormData({ ...formData, tanggal_lahir: e.target.value })}
+                  className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Status Reproduksi</label>
+                <select
+                  value={formData.status_reproduksi}
+                  onChange={(e) => setFormData({ ...formData, status_reproduksi: e.target.value })}
+                  className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
+                >
+                  <option value="Belum Kawin">Belum Kawin</option>
+                  <option value="Siap Kawin">Siap Kawin</option>
+                  {formData.jenis_kelamin === 'Betina' && (
+                    <>
+                      <option value="Bunting">Bunting</option>
+                      <option value="Menyusui">Menyusui</option>
+                    </>
+                  )}
+                </select>
+              </div>
+            </div>
+
+            {/* Status Kesehatan */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Status Kesehatan
+                </label>
+                <select
+                  value={formData.status_kesehatan}
+                  onChange={(e) =>
+                    setFormData({ ...formData, status_kesehatan: e.target.value })
+                  }
+                  className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
+                >
+                  <option value="Sehat">Sehat</option>
+                  <option value="Sakit Ringan">Sakit Ringan</option>
+                  <option value="Sakit Sedang">Sakit Sedang</option>
+                  <option value="Sakit Parah">Sakit Parah</option>
+                </select>
+              </div>
+            </div>
+
+
+            <div className="pt-4 flex gap-3">
+              <button
+                type="button"
                 onClick={() => setIsAddModalOpen(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className="flex-1 px-4 py-2.5 border border-border bg-background hover:bg-secondary text-foreground rounded-lg font-medium transition-colors"
               >
-                <X className="w-5 h-5" />
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="flex-1 px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors"
+              >
+                Simpan Data
               </button>
             </div>
-            
-            {kandangList.length === 0 ? (
-              <div className="p-6 text-center">
-                <p className="text-destructive mb-4">Anda belum memiliki kandang satupun.</p>
-                <a href="/dashboard/kandang" className="text-primary hover:underline font-medium">Buat kandang terlebih dahulu</a>
-              </div>
-            ) : (
-              <form onSubmit={handleAddBabi} className="p-5 space-y-4">
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-sm font-medium text-foreground">Kode / Tag Telinga</label>
-                    <button 
-                      type="button" 
-                      onClick={generateCode}
-                      className="text-xs font-medium text-primary hover:underline"
-                    >
-                      Generate Otomatis
-                    </button>
-                  </div>
-                  <input
-                    type="text"
-                    required
-                    value={formData.kode_babi}
-                    onChange={(e) => setFormData({...formData, kode_babi: e.target.value})}
-                    className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
-                    placeholder="Contoh: PIG-A001"
-                  />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1.5">Kandang</label>
-                    <select
-                      required
-                      value={formData.kandang_id}
-                      onChange={(e) => setFormData({...formData, kandang_id: e.target.value})}
-                      className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
-                    >
-                      {kandangList.map(k => (
-                        <option key={k.id} value={k.id}>{k.nama_kandang}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1.5">Jenis Kelamin</label>
-                    <select
-                      value={formData.jenis_kelamin}
-                      onChange={(e) => setFormData({...formData, jenis_kelamin: e.target.value})}
-                      className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
-                    >
-                      <option value="Betina">Betina</option>
-                      <option value="Jantan">Jantan</option>
-                    </select>
-                  </div>
-                </div>
+          </form>
+        )}
+      </div>
+    </div>
+  )
+}
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1.5">Tanggal Lahir / Beli</label>
-                    <input
-                      type="date"
-                      required
-                      value={formData.tanggal_lahir}
-                      onChange={(e) => setFormData({...formData, tanggal_lahir: e.target.value})}
-                      className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1.5">Status Reproduksi</label>
-                    <select
-                      value={formData.status_reproduksi}
-                      onChange={(e) => setFormData({...formData, status_reproduksi: e.target.value})}
-                      className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
-                    >
-                      <option value="Belum Kawin">Belum Kawin</option>
-                      <option value="Siap Kawin">Siap Kawin</option>
-                      {formData.jenis_kelamin === 'Betina' && (
-                        <>
-                          <option value="Bunting">Bunting</option>
-                          <option value="Menyusui">Menyusui</option>
-                        </>
-                      )}
-                    </select>
-                  </div>
-                </div>
-
-        {/* Status Kesehatan */}
-        <div className="grid grid-cols-2 gap-4">
+{/* Modal Input Vaksinasi */ }
+{
+  isVaccinationModalOpen && selectedBabi && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+      <div className="bg-card w-full max-w-md rounded-2xl shadow-xl border border-border overflow-hidden">
+        <div className="flex items-center justify-between p-5 border-b border-border bg-primary/10">
+          <div className="flex items-center gap-2">
+            <Stethoscope className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-semibold text-primary">Tambah Vaksinasi: {selectedBabi.kode_babi}</h2>
+          </div>
+          <button
+            onClick={() => setIsVaccinationModalOpen(false)}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <form onSubmit={handleAddVaccinationRecord} className="p-5 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">
-              Status Kesehatan
-            </label>
-            <select
-              value={formData.status_kesehatan}
-              onChange={(e) =>
-                setFormData({ ...formData, status_kesehatan: e.target.value })
-              }
+            <label className="block text-sm font-medium text-foreground mb-1.5">Jenis Vaksin</label>
+            <input
+              type="text"
+              required
+              value={vaccinationData.jenis_vaksin}
+              onChange={(e) => setVaccinationData({ ...vaccinationData, jenis_vaksin: e.target.value })}
               className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
+              placeholder="Contoh: Hog Cholera"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Tanggal Vaksin</label>
+              <input
+                type="date"
+                required
+                value={vaccinationData.tanggal_vaksin}
+                onChange={(e) => setVaccinationData({ ...vaccinationData, tanggal_vaksin: e.target.value })}
+                className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Tanggal Berikutnya</label>
+              <input
+                type="date"
+                value={vaccinationData.tanggal_berikutnya}
+                onChange={(e) => setVaccinationData({ ...vaccinationData, tanggal_berikutnya: e.target.value })}
+                className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Catatan</label>
+            <textarea
+              value={vaccinationData.catatan}
+              onChange={(e) => setVaccinationData({ ...vaccinationData, catatan: e.target.value })}
+              className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground resize-none"
+              rows={3}
+              placeholder="Catatan tambahan..."
+            />
+          </div>
+          <div className="pt-4 flex gap-3">
+            <button
+              type="button"
+              onClick={() => setIsVaccinationModalOpen(false)}
+              className="flex-1 px-4 py-2.5 border border-border bg-background hover:bg-secondary text-foreground rounded-lg font-medium transition-colors"
             >
-              <option value="Sehat">Sehat</option>
-              <option value="Sakit Ringan">Sakit Ringan</option>
-              <option value="Sakit Sedang">Sakit Sedang</option>
-              <option value="Sakit Parah">Sakit Parah</option>
-            </select>
+              Batal
+            </button>
+            <button
+              type="submit"
+              className="flex-1 px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors"
+            >
+              Simpan Vaksinasi
+            </button>
           </div>
-        </div>
-        
+        </form>
+      </div>
+    </div>
+  )
+}
 
-                <div className="pt-4 flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsAddModalOpen(false)}
-                    className="flex-1 px-4 py-2.5 border border-border bg-background hover:bg-secondary text-foreground rounded-lg font-medium transition-colors"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors"
-                  >
-                    Simpan Data
-                  </button>
-                </div>
-              </form>
-            )}
+{/* Modal Input Kesehatan */ }
+{
+  isHealthModalOpen && selectedBabi && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+      <div className="bg-card w-full max-w-md rounded-2xl shadow-xl border border-border overflow-hidden">
+        <div className="flex items-center justify-between p-5 border-b border-border bg-destructive/10">
+          <div className="flex items-center gap-2">
+            <Stethoscope className="w-5 h-5 text-destructive" />
+            <h2 className="text-lg font-semibold text-destructive">Catat Medis: {selectedBabi.kode_babi}</h2>
           </div>
+          <button
+            onClick={() => setIsHealthModalOpen(false)}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-      )}
 
-      {/* Modal Input Vaksinasi */}
-      {isVaccinationModalOpen && selectedBabi && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-          <div className="bg-card w-full max-w-md rounded-2xl shadow-xl border border-border overflow-hidden">
-            <div className="flex items-center justify-between p-5 border-b border-border bg-primary/10">
-              <div className="flex items-center gap-2">
-                <Stethoscope className="w-5 h-5 text-primary" />
-                <h2 className="text-lg font-semibold text-primary">Tambah Vaksinasi: {selectedBabi.kode_babi}</h2>
-              </div>
-              <button 
-                onClick={() => setIsVaccinationModalOpen(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors"
+        <form onSubmit={handleAddHealthRecord} className="p-5 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Indikasi Penyakit / Gejala</label>
+            <input
+              type="text"
+              required
+              value={healthData.penyakit}
+              onChange={(e) => setHealthData({ ...healthData, penyakit: e.target.value })}
+              className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
+              placeholder="Contoh: Diare, Demam, Cacingan..."
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Status Parah</label>
+              <select
+                value={healthData.status}
+                onChange={(e) => setHealthData({ ...healthData, status: e.target.value })}
+                className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
               >
-                <X className="w-5 h-5" />
-              </button>
+                <option value="Ringan">Sakit Ringan</option>
+                <option value="Sedang">Sakit Sedang</option>
+                <option value="Parah">Sakit Parah</option>
+                <option value="Sembuh">Sembuh</option>
+              </select>
             </div>
-            <form onSubmit={handleAddVaccinationRecord} className="p-5 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Jenis Vaksin</label>
-                <input
-                  type="text"
-                  required
-                  value={vaccinationData.jenis_vaksin}
-                  onChange={(e) => setVaccinationData({ ...vaccinationData, jenis_vaksin: e.target.value })}
-                  className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
-                  placeholder="Contoh: Hog Cholera"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1.5">Tanggal Vaksin</label>
-                  <input
-                    type="date"
-                    required
-                    value={vaccinationData.tanggal_vaksin}
-                    onChange={(e) => setVaccinationData({ ...vaccinationData, tanggal_vaksin: e.target.value })}
-                    className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1.5">Tanggal Berikutnya</label>
-                  <input
-                    type="date"
-                    value={vaccinationData.tanggal_berikutnya}
-                    onChange={(e) => setVaccinationData({ ...vaccinationData, tanggal_berikutnya: e.target.value })}
-                    className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Catatan</label>
-                <textarea
-                  value={vaccinationData.catatan}
-                  onChange={(e) => setVaccinationData({ ...vaccinationData, catatan: e.target.value })}
-                  className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground resize-none"
-                  rows={3}
-                  placeholder="Catatan tambahan..."
-                />
-              </div>
-              <div className="pt-4 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsVaccinationModalOpen(false)}
-                  className="flex-1 px-4 py-2.5 border border-border bg-background hover:bg-secondary text-foreground rounded-lg font-medium transition-colors"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors"
-                >
-                  Simpan Vaksinasi
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Input Kesehatan */}
-      {isHealthModalOpen && selectedBabi && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-          <div className="bg-card w-full max-w-md rounded-2xl shadow-xl border border-border overflow-hidden">
-            <div className="flex items-center justify-between p-5 border-b border-border bg-destructive/10">
-              <div className="flex items-center gap-2">
-                <Stethoscope className="w-5 h-5 text-destructive" />
-                <h2 className="text-lg font-semibold text-destructive">Catat Medis: {selectedBabi.kode_babi}</h2>
-              </div>
-              <button 
-                onClick={() => setIsHealthModalOpen(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Obat Diberikan</label>
+              <input
+                type="text"
+                value={healthData.obat_diberikan}
+                onChange={(e) => setHealthData({ ...healthData, obat_diberikan: e.target.value })}
+                className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
+                placeholder="Contoh: Amoxicillin"
+              />
             </div>
-            
-            <form onSubmit={handleAddHealthRecord} className="p-5 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Indikasi Penyakit / Gejala</label>
-                <input
-                  type="text"
-                  required
-                  value={healthData.penyakit}
-                  onChange={(e) => setHealthData({...healthData, penyakit: e.target.value})}
-                  className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
-                  placeholder="Contoh: Diare, Demam, Cacingan..."
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1.5">Status Parah</label>
-                  <select
-                    value={healthData.status}
-                    onChange={(e) => setHealthData({...healthData, status: e.target.value})}
-                    className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
-                  >
-                    <option value="Ringan">Sakit Ringan</option>
-                    <option value="Sedang">Sakit Sedang</option>
-                    <option value="Parah">Sakit Parah</option>
-                    <option value="Sembuh">Sembuh</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1.5">Obat Diberikan</label>
-                  <input
-                    type="text"
-                    value={healthData.obat_diberikan}
-                    onChange={(e) => setHealthData({...healthData, obat_diberikan: e.target.value})}
-                    className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
-                    placeholder="Contoh: Amoxicillin"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Catatan Tambahan</label>
-                <textarea
-                  value={healthData.catatan}
-                  onChange={(e) => setHealthData({...healthData, catatan: e.target.value})}
-                  className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground resize-none"
-                  rows={3}
-                  placeholder="Tuliskan catatan monitoring..."
-                />
-              </div>
-
-              <div className="pt-4 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsHealthModalOpen(false)}
-                  className="flex-1 px-4 py-2.5 border border-border bg-background hover:bg-secondary text-foreground rounded-lg font-medium transition-colors"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors"
-                >
-                  Simpan Catatan Medis
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
+
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Catatan Tambahan</label>
+            <textarea
+              value={healthData.catatan}
+              onChange={(e) => setHealthData({ ...healthData, catatan: e.target.value })}
+              className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground resize-none"
+              rows={3}
+              placeholder="Tuliskan catatan monitoring..."
+            />
+          </div>
+
+          <div className="pt-4 flex gap-3">
+            <button
+              type="button"
+              onClick={() => setIsHealthModalOpen(false)}
+              className="flex-1 px-4 py-2.5 border border-border bg-background hover:bg-secondary text-foreground rounded-lg font-medium transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              className="flex-1 px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors"
+            >
+              Simpan Catatan Medis
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
       )}
     </div>
   );
