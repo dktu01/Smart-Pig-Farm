@@ -10,30 +10,11 @@ import {
   Activity, 
   Syringe, 
   SprayCan, 
-  Heart,
   Baby,
   AlertTriangle,
   Bell,
   CheckCircle2
 } from 'lucide-react';
-import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer 
-} from 'recharts';
-
-const mockChartData = [
-  { name: 'Jan', populasi: 120, sakit: 5 },
-  { name: 'Feb', populasi: 135, sakit: 8 },
-  { name: 'Mar', populasi: 150, sakit: 3 },
-  { name: 'Apr', populasi: 180, sakit: 12 },
-  { name: 'Mei', populasi: 190, sakit: 4 },
-  { name: 'Jun', populasi: 210, sakit: 2 },
-];
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -194,46 +175,7 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Chart / Activity Area */}
-        <div className="lg:col-span-2 bg-card border border-border rounded-xl shadow-sm p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-foreground">Status Kesehatan Farm</h2>
-            <select className="bg-background border border-input rounded-lg text-sm px-3 py-1.5 text-foreground focus:ring-2 focus:ring-primary focus:border-transparent">
-              <option>Bulan Ini</option>
-              <option>Tahun Ini</option>
-            </select>
-          </div>
-          
-          <div className="h-[300px] w-full mt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={mockChartData}
-                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-              >
-                <defs>
-                  <linearGradient id="colorPopulasi" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorSakit" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'hsl(var(--muted-foreground))', fontSize: 12}} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: 'hsl(var(--muted-foreground))', fontSize: 12}} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }}
-                  itemStyle={{ color: 'hsl(var(--foreground))' }}
-                />
-                <Area type="monotone" dataKey="populasi" name="Total Populasi" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorPopulasi)" />
-                <Area type="monotone" dataKey="sakit" name="Kasus Sakit" stroke="#ef4444" strokeWidth={3} fillOpacity={1} fill="url(#colorSakit)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 gap-6">
 
         {/* Reminders Panel */}
         <div className="bg-card border border-border rounded-xl shadow-sm p-6 flex flex-col">

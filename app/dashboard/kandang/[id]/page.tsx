@@ -141,6 +141,10 @@ export default function DetailKandangPage() {
             >
               <SprayCan className="w-5 h-5" /> Riwayat Sanitasi
             </button>
+            <div className="flex-1"></div>
+            <a href="/dashboard/babi" className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary hover:bg-primary/20 rounded-md transition-colors text-sm font-medium mb-1 border border-transparent">
+              <Plus className="w-4 h-4" /> Kelola Babi
+            </a>
           </div>
 
           {activeTab === 'babi' && (

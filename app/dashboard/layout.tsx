@@ -39,7 +39,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    window.location.href = '/login';
+    router.push('/login');
   };
 
   return (
@@ -99,8 +99,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           <div className="p-4 border-t border-border flex flex-col gap-3">
-            <div className="flex items-center justify-between px-3 py-1">
-              <span className="text-sm font-medium text-muted-foreground">Appearance</span>
+            <div className="px-3 py-1 w-full">
               <ThemeToggle />
             </div>
             <button

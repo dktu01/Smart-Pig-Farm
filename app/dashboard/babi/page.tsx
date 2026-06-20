@@ -294,6 +294,12 @@ export default function DataBabiPage() {
       (healthStatusFilter === 'Sehat' && b.status_kesehatan === 'Sehat') ||
       (healthStatusFilter === 'Sakit' && b.status_kesehatan !== 'Sehat');
     return matchesCategory && matchesHealth;
+  }).sort((a, b) => {
+    const kandangA = a.kandang?.nama_kandang || '';
+    const kandangB = b.kandang?.nama_kandang || '';
+    if (kandangA < kandangB) return -1;
+    if (kandangA > kandangB) return 1;
+    return a.kode_babi.localeCompare(b.kode_babi);
   });
   return (
     <div className="space-y-6">
@@ -416,6 +422,15 @@ export default function DataBabiPage() {
                     </td>o
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedBabi(babi);
+                            setIsHealthModalOpen(true);
+                          }}
+                          className="text-destructive hover:bg-destructive/10 px-3 py-1.5 rounded-md font-medium transition-colors border border-transparent"
+                        >
+                          Medis
+                        </button>
                         <button
                           onClick={() => {
                             setSelectedBabi(babi);

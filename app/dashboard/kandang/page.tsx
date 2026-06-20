@@ -238,20 +238,29 @@ export default function KandangPage() {
                 </div>
               </div>
 
-              <div className="p-3 border-t border-border flex gap-2">
+              <div className="p-3 border-t border-border flex flex-col gap-2">
                 <a 
-                  href="/dashboard/babi"
-                  className="flex items-center justify-center flex-1 py-2 text-sm font-medium text-foreground bg-secondary hover:bg-secondary/80 rounded-lg transition-colors text-center border border-transparent"
+                  href={`/dashboard/kandang/${kandang.id}`}
+                  className="flex items-center justify-center w-full py-2 text-sm font-medium text-foreground bg-secondary hover:bg-secondary/80 rounded-lg transition-colors text-center border border-transparent"
                 >
-                  Detail Babi
+                  Detail Kandang & Babi
                 </a>
-                <button 
-                  onClick={() => openQRModal(kandang)}
-                  className="flex items-center justify-center gap-1.5 flex-1 py-2 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors border border-transparent"
-                >
-                  <QrCode className="w-4 h-4" />
-                  QR Code
-                </button>
+                <div className="flex gap-2">
+                  <a
+                    href={`/dashboard/kandang/${kandang.id}`}
+                    className="flex items-center justify-center gap-1.5 flex-1 py-2 text-sm font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 rounded-lg transition-colors"
+                  >
+                    <SprayCan className="w-4 h-4" />
+                    Sanitasi
+                  </a>
+                  <button 
+                    onClick={() => openQRModal(kandang)}
+                    className="flex items-center justify-center gap-1.5 flex-1 py-2 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors border border-transparent"
+                  >
+                    <QrCode className="w-4 h-4" />
+                    QR Code
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -357,7 +366,7 @@ export default function KandangPage() {
                 {/* Generate QR using an API for simplicity. The URL payload is the kandang ID or a specific route */}
                 {/* e.g., https://smart-pig-farm.com/scan?id=... */}
                 <img 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https://app.smartpigfarm.com/scan/${selectedKandang.id}&margin=0`} 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https://app.smartpigfarm.com/dashboard/kandang/${selectedKandang.id}&margin=0`} 
                   alt={`QR Code ${selectedKandang.nama_kandang}`}
                   className="w-64 h-64 mx-auto"
                 />
