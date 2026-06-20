@@ -419,7 +419,7 @@ export default function DataBabiPage() {
                         <Heart className="w-4 h-4 text-pink-500 opacity-70" />
                         {babi.status_reproduksi || '-'}
                       </span>
-                    </td>o
+                    </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button

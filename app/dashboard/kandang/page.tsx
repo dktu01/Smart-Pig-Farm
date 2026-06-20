@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Home, Plus, QrCode, Printer, X, Search, MoreVertical, Trash2, Edit } from 'lucide-react';
+import { Home, Plus, QrCode, Printer, X, Search, MoreVertical, Trash2, Edit, SprayCan } from 'lucide-react';
 
 // Type definition based on our Supabase schema
 type Kandang = {
