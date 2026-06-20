@@ -458,6 +458,32 @@ export default function DetailBabiPage() {
           </div>
         </div>
       )}
+
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/90 backdrop-blur border-t md:hidden flex gap-3 z-50">
+        <button
+          onClick={() => setIsVakModalOpen(true)}
+          className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground py-3 font-semibold active:scale-95 transition-transform"
+        >
+          <Syringe className="w-4 h-4" />
+          Input Vaksin
+        </button>
+        <button
+          onClick={() => setIsKesModalOpen(true)}
+          className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-destructive text-white py-3 font-semibold active:scale-95 transition-transform"
+        >
+          <Activity className="w-4 h-4" />
+          Catat Medis
+        </button>
+        {babi.jenis_kelamin === 'Betina' && (
+          <button
+            onClick={() => setIsRepModalOpen(true)}
+            className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-pink-500 text-white py-3 font-semibold active:scale-95 transition-transform"
+          >
+            <Heart className="w-4 h-4" />
+            Reproduksi
+          </button>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { Home, Plus, QrCode, Printer, X, Search, MoreVertical, Trash2, Edit, SprayCan } from 'lucide-react';
+import { Home, Plus, QrCode, Printer, X, Search, MoreVertical, Trash2, Edit } from 'lucide-react';
 
 // Type definition based on our Supabase schema
 type Kandang = {
@@ -24,6 +25,7 @@ export default function KandangPage() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [selectedKandang, setSelectedKandang] = useState<Kandang | null>(null);
+  const [qrOrigin, setQrOrigin] = useState('');
 
   // Form states
   const [formData, setFormData] = useState({
@@ -34,6 +36,10 @@ export default function KandangPage() {
 
   useEffect(() => {
     fetchKandang();
+  }, []);
+
+  useEffect(() => {
+    setQrOrigin(window.location.origin);
   }, []);
 
   const fetchKandang = async () => {
@@ -242,12 +248,12 @@ export default function KandangPage() {
               </div>
 
               <div className="p-3 border-t border-border flex gap-2">
-                <a 
+                <Link 
                   href={`/dashboard/kandang/${kandang.id}`}
                   className="flex items-center justify-center flex-1 py-2 text-sm font-medium text-foreground bg-secondary hover:bg-secondary/80 rounded-lg transition-colors text-center border border-transparent"
                 >
                   Detail Kandang
-                </a>
+                </Link>
                 <button 
                   onClick={() => openQRModal(kandang)}
                   className="flex items-center justify-center gap-1.5 flex-1 py-2 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors border border-transparent"
@@ -357,9 +363,8 @@ export default function KandangPage() {
               </p>
               
               <div className="inline-block p-4 border-4 border-gray-900 rounded-xl mb-8 bg-white">
-                {/* QR Code points to the kandang detail page, using dynamic origin so it works on localhost AND Vercel */}
                 <img 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${typeof window !== 'undefined' ? window.location.origin : ''}/dashboard/kandang/${selectedKandang.id}&margin=0`} 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`${qrOrigin}/dashboard/kandang/${selectedKandang.id}`)}&margin=0`} 
                   alt={`QR Code ${selectedKandang.nama_kandang}`}
                   className="w-64 h-64 mx-auto"
                 />
@@ -371,7 +376,7 @@ export default function KandangPage() {
               </div>
             </div>
 
-            <div className="p-4 bg-gray-50 border-t border-gray-200 print:hidden">
+            <div className="p-4 bg-gray-50 border-t border-gray-200 print:hidden space-y-2">
               <button
                 onClick={handlePrintQR}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-black text-white hover:bg-gray-800 rounded-lg font-medium transition-colors"
@@ -379,6 +384,12 @@ export default function KandangPage() {
                 <Printer className="w-5 h-5" />
                 Cetak Label QR
               </button>
+              <Link
+                href={`/dashboard/kandang/${selectedKandang.id}`}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg font-medium transition-colors"
+              >
+                Buka Detail Kandang
+              </Link>
             </div>
           </div>
         </div>

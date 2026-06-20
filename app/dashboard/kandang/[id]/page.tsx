@@ -261,6 +261,23 @@ export default function DetailKandangPage() {
           </div>
         </div>
       )}
+
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/90 backdrop-blur border-t md:hidden flex gap-3 z-50">
+        <button
+          onClick={() => setIsSanitasiModalOpen(true)}
+          className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-emerald-500 text-white py-3 font-semibold active:scale-95 transition-transform"
+        >
+          <SprayCan className="w-4 h-4" />
+          Selesai Sanitasi
+        </button>
+        <button
+          onClick={() => router.push('/dashboard/babi')}
+          className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground py-3 font-semibold active:scale-95 transition-transform"
+        >
+          <Plus className="w-4 h-4" />
+          Kelola Babi
+        </button>
+      </div>
     </div>
   );
 }

@@ -171,39 +171,39 @@ export default function JadwalPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm border-collapse whitespace-nowrap">
+            <table className="w-full text-left text-sm border-collapse whitespace-nowrap md:whitespace-normal">
               <thead>
                 <tr className="bg-secondary/50 border-b border-border">
-                  <th className="py-4 px-6 font-medium text-muted-foreground w-32">Tanggal</th>
-                  <th className="py-4 px-6 font-medium text-muted-foreground w-40">Kegiatan</th>
-                  <th className="py-4 px-6 font-medium text-muted-foreground">Objek (Babi/Kandang)</th>
-                  <th className="py-4 px-6 font-medium text-muted-foreground text-right">Status</th>
+                  <th className="py-4 px-3 md:px-6 font-medium text-muted-foreground w-24 md:w-32">Tanggal</th>
+                  <th className="py-4 px-3 md:px-6 font-medium text-muted-foreground w-14 md:w-40">Keg.</th>
+                  <th className="py-4 px-3 md:px-6 font-medium text-muted-foreground">Objek</th>
+                  <th className="py-4 px-3 md:px-6 font-medium text-muted-foreground text-right">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredJadwal.map((j) => (
                   <tr key={j.id} className="border-b border-border/50 hover:bg-secondary/50 transition-colors">
-                    <td className="py-4 px-6 font-medium text-foreground">
+                    <td className="py-4 px-3 md:px-6 font-medium text-foreground text-xs md:text-sm">
                       {new Date(j.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-4 px-3 md:px-6">
                       <div className="flex items-center gap-2">
                         <div className={`p-1.5 rounded-md ${j.bg}`}>
                           <j.icon className={`w-4 h-4 ${j.color}`} />
                         </div>
-                        <span className="font-medium text-foreground">{j.kegiatan}</span>
+                        <span className="hidden md:inline font-medium text-foreground">{j.kegiatan}</span>
                       </div>
                     </td>
-                    <td className="py-4 px-6 font-bold text-foreground">
+                    <td className="py-4 px-3 md:px-6 font-bold text-foreground text-xs md:text-sm">
                       {j.objek}
                     </td>
-                    <td className="py-4 px-6 text-right">
+                    <td className="py-4 px-3 md:px-6 text-right">
                       <button 
                         onClick={() => { setSelectedJadwal(j); setActualDate(new Date().toISOString().split('T')[0]); setIsMarkModalOpen(true); }}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 border border-transparent transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 border border-transparent transition-colors active:scale-95"
                       >
                         <CheckCircle2 className="w-4 h-4" />
-                        Tandai Selesai
+                        <span className="hidden sm:inline">Tandai Selesai</span>
                       </button>
                     </td>
                   </tr>

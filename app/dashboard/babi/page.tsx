@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { PiggyBank, Plus, Search, Calendar, Heart, MoreHorizontal, X, Stethoscope, Trash2, Edit, Syringe, MapPin, ChevronRight } from 'lucide-react';
 
@@ -23,6 +24,7 @@ type Babi = {
 };
 
 export default function DataBabiPage() {
+  const router = useRouter();
   const [babiList, setBabiList] = useState<Babi[]>([]);
   const [kandangList, setKandangList] = useState<Kandang[]>([]);
   const [loading, setLoading] = useState(true);
@@ -262,11 +264,15 @@ export default function DataBabiPage() {
     }
   };
 
-  const getHealthColor = (status: string) => {
-    if (status === 'Sehat') return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
-    if (status.includes('Ringan')) return 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
-    if (status.includes('Sedang')) return 'bg-orange-500/10 text-orange-600 border-orange-500/20';
-    return 'bg-destructive/10 text-destructive border-destructive/20';
+  const getHealthBadge = (status: string) => {
+    const normalized = status?.toLowerCase() || '';
+    if (normalized.includes('sehat')) {
+      return { label: 'Sehat', className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
+    }
+    if (normalized.includes('pantau')) {
+      return { label: 'Pantauan', className: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20' };
+    }
+    return { label: 'Sakit', className: 'bg-destructive/10 text-destructive border-destructive/20' };
   };
 
   const handleDeleteBabi = async (id: string, kode: string) => {
@@ -394,25 +400,25 @@ export default function DataBabiPage() {
           </button>
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden flex flex-col">
+          <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden flex flex-col">
           {/* Close dropdown on outside click */}
           {openDropdownId && (
             <div className="fixed inset-0 z-10" onClick={() => setOpenDropdownId(null)} />
           )}
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-secondary/50 text-muted-foreground uppercase text-xs font-semibold tracking-wider">
                 <tr>
                   <th className="px-6 py-4">Identitas</th>
                   <th className="px-6 py-4">Profil</th>
-                  <th className="px-6 py-4">Status Vaksin</th>
+                  <th className="px-6 py-4">Kesehatan</th>
                   <th className="px-6 py-4">Reproduksi</th>
                   <th className="px-6 py-4 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {filteredBabi.map((babi) => {
-                  const vaksinStatus = getVaksinStatus(babi);
+                  const healthBadge = getHealthBadge(babi.status_kesehatan);
                   return (
                     <tr
                       key={babi.id}
@@ -441,9 +447,8 @@ export default function DataBabiPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${vaksinStatus.className}`}>
-                          <Syringe className="w-3 h-3" />
-                          {vaksinStatus.label}
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${healthBadge.className}`}>
+                          {healthBadge.label}
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -461,7 +466,7 @@ export default function DataBabiPage() {
                             title="Catat Vaksinasi"
                           >
                             <Syringe className="w-3.5 h-3.5" />
-                            Vaksin
+                            💉
                           </button>
                           {/* ... dropdown for Edit & Delete */}
                           <div className="relative">
@@ -501,6 +506,59 @@ export default function DataBabiPage() {
                 })}
               </tbody>
             </table>
+          </div>
+          <div className="grid gap-3 md:hidden p-4">
+            {filteredBabi.map((babi) => {
+              const healthBadge = getHealthBadge(babi.status_kesehatan);
+              return (
+                <div
+                  key={babi.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => router.push(`/dashboard/babi/${babi.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      router.push(`/dashboard/babi/${babi.id}`);
+                    }
+                  }}
+                  className="relative rounded-2xl border border-border bg-card p-4 shadow-sm active:scale-[0.99] transition-transform"
+                >
+                  <div className="flex items-start gap-3 pr-12">
+                    <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+                      <PiggyBank className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-foreground text-base truncate">{babi.kode_babi}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                        {babi.kandang?.nama_kandang || '-'}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">{babi.status_reproduksi || '-'}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between gap-3">
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${healthBadge.className}`}>
+                      {healthBadge.label}
+                    </span>
+                    <div className="text-xs text-muted-foreground">Kode Kandang: {babi.kandang?.nama_kandang || '-'}</div>
+                  </div>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedBabi(babi);
+                      setIsVaccinationModalOpen(true);
+                    }}
+                    className="absolute bottom-4 right-4 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+                    aria-label={`Input vaksin untuk ${babi.kode_babi}`}
+                    title="Input Vaksin"
+                  >
+                    <Syringe className="w-5 h-5" />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

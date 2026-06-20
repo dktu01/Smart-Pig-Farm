@@ -1,16 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Lock, Mail, PiggyBank, User } from 'lucide-react';
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,34 +32,10 @@ export default function RegisterPage() {
     if (error) {
       setError(error.message);
     } else {
-      setSuccess(true);
+      router.replace('/dashboard');
     }
     setLoading(false);
   };
-
-  if (success) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col justify-center items-center p-4">
-        <div className="max-w-md w-full bg-card rounded-2xl shadow-xl overflow-hidden border border-border p-8 text-center">
-          <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-8 h-8 text-green-600 dark:text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">Registration Successful!</h2>
-          <p className="text-muted-foreground mb-6">
-            Please check your email to verify your account before logging in.
-          </p>
-          <a
-            href="/login"
-            className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 transition-all"
-          >
-            Go to Login
-          </a>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col justify-center items-center p-4">

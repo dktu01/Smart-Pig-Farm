@@ -11,7 +11,6 @@ import {
   Syringe, 
   SprayCan, 
   Baby,
-  AlertTriangle,
   Bell,
   CheckCircle2
 } from 'lucide-react';
@@ -130,8 +129,6 @@ export default function DashboardPage() {
           Pantau kesehatan dan aktivitas farm Anda secara real-time.
         </p>
       </div>
-
-
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
