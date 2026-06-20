@@ -110,7 +110,8 @@ export default function DataBabiPage() {
           jenis_kelamin: formData.jenis_kelamin,
           tanggal_lahir: formData.tanggal_lahir,
           kandang_id: formData.kandang_id,
-          status_reproduksi: formData.status_reproduksi
+          status_reproduksi: formData.status_reproduksi,
+          status_kesehatan: formData.status_kesehatan
         })
         .eq('id', selectedBabi.id)
         .select(`
@@ -121,7 +122,7 @@ export default function DataBabiPage() {
       if (error) {
         alert('Gagal mengupdate babi: ' + error.message);
       } else {
-        setBabiList(babiList.map(b => b.id === selectedBabi.id ? data[0] as any : b));
+        setBabiList(babiList.map(b => b.id === selectedBabi.id ? (data?.[0] || b) as any : b));
         setIsAddModalOpen(false);
         setIsEditMode(false);
         setSelectedBabi(null);
@@ -148,7 +149,9 @@ export default function DataBabiPage() {
       if (error) {
         alert('Gagal menambahkan babi: ' + error.message);
       } else {
-        setBabiList([data[0] as any, ...babiList]);
+        if (data && data.length > 0) {
+          setBabiList([data[0] as any, ...babiList]);
+        }
         setIsAddModalOpen(false);
         setFormData({ 
           ...formData, 
@@ -167,8 +170,8 @@ export default function DataBabiPage() {
       jenis_kelamin: babi.jenis_kelamin,
       tanggal_lahir: babi.tanggal_lahir,
       kandang_id: babi.kandang_id,
-      status_kesehatan: babi.status_kesehatan,
-      status_reproduksi: babi.status_reproduksi,
+      status_kesehatan: babi.status_kesehatan || 'Sehat',
+      status_reproduksi: babi.status_reproduksi || 'Belum Kawin',
     });
     setIsAddModalOpen(true);
   };
@@ -255,6 +258,7 @@ export default function DataBabiPage() {
   };
 
   const getHealthColor = (status: string) => {
+    if (!status) return 'bg-gray-500/10 text-gray-600 border-gray-500/20';
     if (status === 'Sehat') return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
     if (status.includes('Ringan')) return 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
     if (status.includes('Sedang')) return 'bg-orange-500/10 text-orange-600 border-orange-500/20';
@@ -278,10 +282,12 @@ export default function DataBabiPage() {
 
 // Helper to calculate age in months
 const calculateAge = (birthDate: string) => {
+  if (!birthDate) return '-';
   const start = new Date(birthDate);
+  if (isNaN(start.getTime())) return '-';
   const now = new Date();
   const months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
-  return months === 0 ? '< 1 Bulan' : `${months} Bulan`;
+  return months <= 0 ? '< 1 Bulan' : `${months} Bulan`;
 };
 
 // Compute filtered list based on selected filters
@@ -405,7 +411,7 @@ const filteredBabi = babiList.filter((b) => {
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getHealthColor(babi.status_kesehatan)}`}>
                         {babi.status_kesehatan === 'Sehat' ? <Activity className="w-3 h-3 mr-1" /> : <Stethoscope className="w-3 h-3 mr-1" />}
-                        {babi.status_kesehatan}
+                        {babi.status_kesehatan || 'Tidak ada data'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -416,6 +422,15 @@ const filteredBabi = babiList.filter((b) => {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <button 
+                          onClick={() => {
+                            setSelectedBabi(babi);
+                            setIsHealthModalOpen(true);
+                          }}
+                          className="text-destructive hover:bg-destructive/10 px-3 py-1.5 rounded-md font-medium transition-colors border border-transparent"
+                        >
+                          Medis
+                        </button>
                         <button 
                           onClick={() => {
                             setSelectedBabi(babi);
