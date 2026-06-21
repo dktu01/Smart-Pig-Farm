@@ -10,6 +10,7 @@ import {
   SprayCan, 
   Baby,
   Bell,
+  CheckCircle2,
   Home,
   CalendarClock,
   Droplets
