@@ -11,12 +11,14 @@ import {
   Baby,
   Bell,
   CheckCircle2,
-  Droplets
+  Droplets,
+  Home
 } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
   const [summary, setSummary] = useState({
+    totalKandang: 0,
     population: 0,
     nearestVaccine: 'Belum ada jadwal',
     nearestBirth: 'Belum ada jadwal',
@@ -42,6 +44,7 @@ export default function DashboardPage() {
 
       if (!userId) {
         setSummary({
+          totalKandang: 0,
           population: 0,
           nearestVaccine: 'Belum ada jadwal',
           nearestBirth: 'Belum ada jadwal',
@@ -53,17 +56,20 @@ export default function DashboardPage() {
       }
       
       const [
+        kandangRes,
         babiRes,
         vaksinRes,
         sanitasiRes,
         lahirRes
       ] = await Promise.all([
+        supabase.from('kandang').select('*', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('babi').select('*', { count: 'exact', head: true }).eq('user_id', userId),
         supabase.from('vaksinasi').select('*, babi:babi_id(kode_babi)').eq('user_id', userId).not('tanggal_berikutnya', 'is', null).gte('tanggal_berikutnya', today).order('tanggal_berikutnya').limit(1),
         supabase.from('sanitasi').select('*, kandang:kandang_id(nama_kandang)').eq('user_id', userId).not('tanggal_berikutnya', 'is', null).gte('tanggal_berikutnya', today).order('tanggal_berikutnya').limit(1),
         supabase.from('reproduksi').select('*, babi_betina:babi_betina_id(kode_babi)').eq('user_id', userId).eq('status_bunting', true).is('tanggal_melahirkan', null).not('estimasi_lahir', 'is', null).gte('estimasi_lahir', today).order('estimasi_lahir').limit(1)
       ]);
 
+      if (kandangRes.error) throw kandangRes.error;
       if (babiRes.error) throw babiRes.error;
       if (vaksinRes.error) throw vaksinRes.error;
       if (sanitasiRes.error) throw sanitasiRes.error;
@@ -74,6 +80,7 @@ export default function DashboardPage() {
       const nearestBirth = lahirRes.data?.[0];
 
       setSummary({
+        totalKandang: kandangRes.count || 0,
         population: babiRes.count || 0,
         nearestVaccine: nearestVaccine
           ? `${new Date(nearestVaccine.tanggal_berikutnya).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} · ${nearestVaccine.babi?.kode_babi || 'Massal'}`
@@ -146,7 +153,8 @@ export default function DashboardPage() {
   };
 
   const stats = [
-    { name: 'Populasi', value: loading ? '...' : summary.population, icon: PiggyBank, color: 'text-[#14532D]', bg: 'bg-[#14532D]/10', hint: 'Total babi aktif' },
+    { name: 'Total Kandang', value: summary.totalKandang, icon: Home, color: 'text-blue-500', bg: 'bg-blue-500/10', hint: 'Kandang terdaftar' },
+    { name: 'Total Babi', value: summary.population, icon: PiggyBank, color: 'text-[#14532D]', bg: 'bg-[#14532D]/10', hint: 'Total babi aktif' },
     { name: 'Jadwal Vaksin Terdekat', value: loading ? '...' : summary.nearestVaccine, icon: Syringe, color: 'text-[#EA580C]', bg: 'bg-[#EA580C]/10', hint: 'Agenda vaksin berikutnya' },
     { name: 'Jadwal Lahir Terdekat', value: loading ? '...' : summary.nearestBirth, icon: Baby, color: 'text-pink-500', bg: 'bg-pink-500/10', hint: 'Estimasi kelahiran terdekat' },
     { name: 'Status Sanitasi Kandang', value: loading ? '...' : summary.sanitationStatus, icon: Droplets, color: 'text-emerald-500', bg: 'bg-emerald-500/10', hint: loading ? 'Memuat...' : summary.sanitationDetail },
@@ -167,7 +175,7 @@ export default function DashboardPage() {
           <Link
             key={stat.name}
             href={
-              stat.name === 'Populasi'
+              stat.name === 'Total Babi'
                 ? '/dashboard/babi'
                 : stat.name === 'Jadwal Vaksin Terdekat'
                 ? '/dashboard/jadwal'
@@ -175,15 +183,23 @@ export default function DashboardPage() {
                 ? '/dashboard/jadwal'
                 : '/dashboard/kandang'
             }
-            className="bg-card border border-border rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow"
+            className="bg-card border border-border rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow block"
           >
             <div className="flex items-center justify-between">
-              <div>
+              <div className="flex-1">
                 <p className="text-sm font-medium text-muted-foreground mb-1">{stat.name}</p>
-                <h3 className="text-2xl font-bold text-foreground leading-tight">{stat.value}</h3>
-                <p className="mt-2 text-xs text-muted-foreground">{stat.hint}</p>
+                {loading ? (
+                  <div className="h-8 w-16 bg-secondary animate-pulse rounded mt-1"></div>
+                ) : (
+                  <h3 className="text-2xl font-bold text-foreground leading-tight">{stat.value}</h3>
+                )}
+                {loading ? (
+                   <div className="h-4 w-24 bg-secondary animate-pulse rounded mt-2"></div>
+                ) : (
+                  <p className="mt-2 text-xs text-muted-foreground">{stat.hint}</p>
+                )}
               </div>
-              <div className={`p-3 rounded-full ${stat.bg}`}>
+              <div className={`p-3 rounded-full ${stat.bg} flex-shrink-0 ml-4`}>
                 <stat.icon className={`w-6 h-6 ${stat.color}`} />
               </div>
             </div>

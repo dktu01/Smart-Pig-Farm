@@ -423,7 +423,7 @@ export default function DataBabiPage() {
                               <MoreHorizontal className="w-4 h-4" />
                             </button>
                             {openDropdownId === babi.id && (
-                              <div className="absolute right-0 top-full mt-1 w-40 bg-card border border-border rounded-xl shadow-xl z-20 overflow-hidden">
+                              <div className="absolute right-0 top-full mt-1 w-40 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden">
                                 <button
                                   onClick={() => { setOpenDropdownId(null); openEditModal(babi); }}
                                   className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"

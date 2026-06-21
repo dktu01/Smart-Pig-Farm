@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Info, Syringe, Heart, PiggyBank, Plus, X } from 'lucide-react';
+import { ArrowLeft, Info, Syringe, Heart, PiggyBank, Plus, X, Trash2, MoreHorizontal } from 'lucide-react';
 
 export default function DetailBabiPage() {
   const params = useParams();
@@ -16,6 +16,7 @@ export default function DetailBabiPage() {
   // Modal states
   const [isVakModalOpen, setIsVakModalOpen] = useState(false);
   const [isRepModalOpen, setIsRepModalOpen] = useState(false);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   // Form states
   const [vakForm, setVakForm] = useState({ jenis_vaksin: '', tanggal_vaksin: new Date().toISOString().split('T')[0], tanggal_berikutnya: '', catatan: '' });
@@ -153,6 +154,19 @@ export default function DetailBabiPage() {
       }
     } catch (error: any) {
       alert('Gagal menyimpan data reproduksi: ' + error.message);
+    }
+  };
+
+  const handleDeleteReproduksi = async (repId: string) => {
+    if (!window.confirm('Yakin ingin menghapus riwayat reproduksi ini?')) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { error } = await supabase.from('reproduksi').delete().eq('id', repId).eq('user_id', user.id);
+      if (error) throw error;
+      setReproduksi(reproduksi.filter(r => r.id !== repId));
+    } catch (e: any) {
+      alert('Gagal menghapus riwayat: ' + e.message);
     }
   };
 
@@ -330,7 +344,8 @@ export default function DetailBabiPage() {
                       <th className="pb-3 px-4">Kode Jantan</th>
                       <th className="pb-3 px-4">Status Bunting</th>
                       <th className="pb-3 px-4">Estimasi Lahir</th>
-                      <th className="pb-3 pl-4">Tanggal Lahir Aktual</th>
+                      <th className="pb-3 px-4">Tanggal Lahir Aktual</th>
+                      <th className="pb-3 pl-4 text-right">Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -344,7 +359,29 @@ export default function DetailBabiPage() {
                           </span>
                         </td>
                         <td className="py-3 px-4 text-orange-500">{r.estimasi_lahir || '-'}</td>
-                        <td className="py-3 pl-4 font-medium text-emerald-500">{r.tanggal_melahirkan || 'Belum Lahir'}</td>
+                        <td className="py-3 px-4 font-medium text-emerald-500">{r.tanggal_melahirkan || 'Belum Lahir'}</td>
+                        <td className="py-3 pl-4 text-right relative">
+                          <button
+                            onClick={() => setOpenDropdownId(openDropdownId === r.id ? null : r.id)}
+                            className="text-muted-foreground hover:text-foreground p-2 rounded-lg hover:bg-secondary transition-colors"
+                          >
+                            <MoreHorizontal className="w-4 h-4" />
+                          </button>
+                          {openDropdownId === r.id && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={() => setOpenDropdownId(null)}></div>
+                              <div className="absolute right-0 top-full mt-1 w-40 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden">
+                                <button
+                                  onClick={() => { setOpenDropdownId(null); handleDeleteReproduksi(r.id); }}
+                                  className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  Hapus Riwayat
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -405,13 +442,26 @@ export default function DetailBabiPage() {
               <div><label className="text-sm font-medium">Kode Pejantan (Opsional)</label><input value={repForm.babi_jantan_kode} onChange={e=>setRepForm({...repForm, babi_jantan_kode: e.target.value})} placeholder="Cth: PEJ-001" className="w-full border rounded-lg p-2 bg-background mt-1" /></div>
               <div><label className="text-sm font-medium">Tanggal Kawin</label><input type="date" required value={repForm.tanggal_kawin} onChange={e=>{
                 const tk = e.target.value;
-                const est = new Date(tk);
-                est.setDate(est.getDate() + 114);
-                setRepForm({...repForm, tanggal_kawin: tk, estimasi_lahir: est.toISOString().split('T')[0]});
+                if (repForm.status_bunting) {
+                  const est = new Date(tk);
+                  est.setDate(est.getDate() + 115);
+                  setRepForm({...repForm, tanggal_kawin: tk, estimasi_lahir: est.toISOString().split('T')[0]});
+                } else {
+                  setRepForm({...repForm, tanggal_kawin: tk});
+                }
               }} className="w-full border rounded-lg p-2 bg-background mt-1" /></div>
-              <div className="flex items-center gap-2"><input type="checkbox" id="bunting" checked={repForm.status_bunting} onChange={e=>setRepForm({...repForm, status_bunting: e.target.checked})} className="w-4 h-4" /><label htmlFor="bunting" className="text-sm font-medium">Terkonfirmasi Bunting</label></div>
+              <div className="flex items-center gap-2"><input type="checkbox" id="bunting" checked={repForm.status_bunting} onChange={e=>{
+                const checked = e.target.checked;
+                if (checked && repForm.tanggal_kawin) {
+                  const est = new Date(repForm.tanggal_kawin);
+                  est.setDate(est.getDate() + 115);
+                  setRepForm({...repForm, status_bunting: true, estimasi_lahir: est.toISOString().split('T')[0]});
+                } else {
+                  setRepForm({...repForm, status_bunting: checked, estimasi_lahir: ''});
+                }
+              }} className="w-4 h-4" /><label htmlFor="bunting" className="text-sm font-medium">Terkonfirmasi Bunting</label></div>
               {repForm.status_bunting && (
-                <div><label className="text-sm font-medium">Estimasi Lahir (+114 Hari)</label><input type="date" value={repForm.estimasi_lahir} onChange={e=>setRepForm({...repForm, estimasi_lahir: e.target.value})} className="w-full border rounded-lg p-2 bg-background mt-1" /></div>
+                <div><label className="text-sm font-medium">Estimasi Lahir (+115 Hari)</label><input type="date" value={repForm.estimasi_lahir} onChange={e=>setRepForm({...repForm, estimasi_lahir: e.target.value})} className="w-full border rounded-lg p-2 bg-background mt-1" /></div>
               )}
               <button type="submit" className="w-full bg-primary text-white p-2 rounded-lg font-medium">Simpan</button>
             </form>
