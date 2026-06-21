@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { Home, Plus, QrCode, Printer, X, Search, MoreVertical, Trash2, Edit } from 'lucide-react';
+import { Home, Plus, QrCode, Printer, X, Search, Trash2, Edit } from 'lucide-react';
 
 // Type definition based on our Supabase schema
 type Kandang = {
@@ -12,6 +12,7 @@ type Kandang = {
   jenis_kandang: string;
   kapasitas: number;
   qr_code_url: string | null;
+  user_email?: string | null;
   created_at: string;
   babi?: { id: string }[];
 };
@@ -44,9 +45,19 @@ export default function KandangPage() {
 
   const fetchKandang = async () => {
     setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    const userEmail = user?.email;
+
+    if (!userEmail) {
+      setKandangList([]);
+      setLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from('kandang')
       .select('*, babi(id)')
+      .eq('user_email', userEmail)
       .order('created_at', { ascending: false });
     
     if (error) {
@@ -59,6 +70,13 @@ export default function KandangPage() {
 
   const handleAddKandang = async (e: React.FormEvent) => {
     e.preventDefault();
+    const { data: { user } } = await supabase.auth.getUser();
+    const userEmail = user?.email;
+
+    if (!userEmail) {
+      alert('Session login tidak ditemukan. Silakan login ulang.');
+      return;
+    }
     
     if (isEditMode && selectedKandang) {
       // Edit Mode
@@ -70,6 +88,7 @@ export default function KandangPage() {
           kapasitas: formData.kapasitas
         })
         .eq('id', selectedKandang.id)
+        .eq('user_email', userEmail)
         .select();
 
       if (error) {
@@ -94,7 +113,8 @@ export default function KandangPage() {
           { 
             nama_kandang: formData.nama_kandang, 
             jenis_kandang: formData.jenis_kandang,
-            kapasitas: formData.kapasitas
+            kapasitas: formData.kapasitas,
+            user_email: userEmail
           }
         ])
         .select();
@@ -126,11 +146,14 @@ export default function KandangPage() {
 
   const handleDeleteKandang = async (id: string, nama: string) => {
     if (!window.confirm(`Apakah Anda yakin ingin menghapus ${nama}? Pastikan kandang ini sudah kosong karena jika masih ada babi di dalamnya, proses hapus bisa gagal atau data babi menjadi yatim.`)) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    const userEmail = user?.email;
     
     const { error } = await supabase
       .from('kandang')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_email', userEmail ?? '');
 
     if (error) {
       alert('Gagal menghapus kandang: ' + error.message);

@@ -26,12 +26,23 @@ export default function DetailKandangPage() {
 
   const fetchDetailData = async () => {
     setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    const userEmail = user?.email;
+
+    if (!userEmail) {
+      setKandang(null);
+      setBabiList([]);
+      setSanitasiList([]);
+      setLoading(false);
+      return;
+    }
     
     // Fetch Kandang
     const { data: kandangData } = await supabase
       .from('kandang')
       .select('*')
       .eq('id', id)
+      .eq('user_email', userEmail)
       .single();
       
     if (kandangData) setKandang(kandangData);
@@ -41,6 +52,7 @@ export default function DetailKandangPage() {
       .from('babi')
       .select('*')
       .eq('kandang_id', id)
+      .eq('user_email', userEmail)
       .order('created_at', { ascending: false });
       
     if (babiData) setBabiList(babiData);
@@ -50,6 +62,7 @@ export default function DetailKandangPage() {
       .from('sanitasi')
       .select('*')
       .eq('kandang_id', id)
+      .eq('user_email', userEmail)
       .order('tanggal_semprot', { ascending: false });
 
     if (sanData) setSanitasiList(sanData);
@@ -59,11 +72,19 @@ export default function DetailKandangPage() {
 
   const handleAddSanitasi = async (e: React.FormEvent) => {
     e.preventDefault();
+    const { data: { user } } = await supabase.auth.getUser();
+    const userEmail = user?.email;
+
+    if (!userEmail) {
+      alert('Session login tidak ditemukan. Silakan login ulang.');
+      return;
+    }
     const { data, error } = await supabase.from('sanitasi').insert([{
       kandang_id: id,
       tanggal_semprot: sanitasiForm.tanggal_semprot,
       jenis_disinfektan: sanitasiForm.jenis_disinfektan,
-      tanggal_berikutnya: sanitasiForm.tanggal_berikutnya || null
+      tanggal_berikutnya: sanitasiForm.tanggal_berikutnya || null,
+      user_email: userEmail
     }]).select();
 
     if (!error && data) {

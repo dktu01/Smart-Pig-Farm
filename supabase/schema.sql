@@ -8,6 +8,7 @@ create table public.kandang (
     jenis_kandang text not null check (jenis_kandang in ('Indukan', 'Anak', 'Pejantan', 'Pembesaran')),
     kapasitas int not null default 0,
     qr_code_url text,
+    user_email text,
     created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -20,6 +21,7 @@ create table public.babi (
     tanggal_lahir date not null,
     status_kesehatan text not null default 'Sehat' check (status_kesehatan in ('Sehat', 'Sakit Ringan', 'Sakit Sedang', 'Sakit Parah')),
     status_reproduksi text check (status_reproduksi in ('Belum Kawin', 'Bunting', 'Menyusui', 'Siap Kawin')),
+    user_email text,
     created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -32,6 +34,7 @@ create table public.kesehatan (
     obat_diberikan text,
     catatan text,
     status text not null check (status in ('Ringan', 'Sedang', 'Parah', 'Sembuh')),
+    user_email text,
     created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -43,6 +46,7 @@ create table public.vaksinasi (
     tanggal_vaksin date not null,
     tanggal_berikutnya date,
     catatan text,
+    user_email text,
     created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -53,6 +57,7 @@ create table public.sanitasi (
     tanggal_semprot date not null,
     jenis_disinfektan text not null,
     tanggal_berikutnya date,
+    user_email text,
     created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -67,6 +72,7 @@ create table public.reproduksi (
     tanggal_melahirkan date,
     jumlah_anak_hidup int default 0,
     jumlah_anak_mati int default 0,
+    user_email text,
     created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -79,9 +85,26 @@ alter table public.vaksinasi enable row level security;
 alter table public.sanitasi enable row level security;
 alter table public.reproduksi enable row level security;
 
-create policy "Allow all actions for authenticated users" on public.kandang for all using (auth.role() = 'authenticated');
-create policy "Allow all actions for authenticated users" on public.babi for all using (auth.role() = 'authenticated');
-create policy "Allow all actions for authenticated users" on public.kesehatan for all using (auth.role() = 'authenticated');
-create policy "Allow all actions for authenticated users" on public.vaksinasi for all using (auth.role() = 'authenticated');
-create policy "Allow all actions for authenticated users" on public.sanitasi for all using (auth.role() = 'authenticated');
-create policy "Allow all actions for authenticated users" on public.reproduksi for all using (auth.role() = 'authenticated');
+create policy "Tenant access kandang" on public.kandang for all
+using (user_email = coalesce(auth.jwt() ->> 'email', ''))
+with check (user_email = coalesce(auth.jwt() ->> 'email', ''));
+
+create policy "Tenant access babi" on public.babi for all
+using (user_email = coalesce(auth.jwt() ->> 'email', ''))
+with check (user_email = coalesce(auth.jwt() ->> 'email', ''));
+
+create policy "Tenant access kesehatan" on public.kesehatan for all
+using (user_email = coalesce(auth.jwt() ->> 'email', ''))
+with check (user_email = coalesce(auth.jwt() ->> 'email', ''));
+
+create policy "Tenant access vaksinasi" on public.vaksinasi for all
+using (user_email = coalesce(auth.jwt() ->> 'email', ''))
+with check (user_email = coalesce(auth.jwt() ->> 'email', ''));
+
+create policy "Tenant access sanitasi" on public.sanitasi for all
+using (user_email = coalesce(auth.jwt() ->> 'email', ''))
+with check (user_email = coalesce(auth.jwt() ->> 'email', ''));
+
+create policy "Tenant access reproduksi" on public.reproduksi for all
+using (user_email = coalesce(auth.jwt() ->> 'email', ''))
+with check (user_email = coalesce(auth.jwt() ->> 'email', ''));

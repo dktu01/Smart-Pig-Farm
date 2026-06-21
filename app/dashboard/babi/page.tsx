@@ -16,11 +16,11 @@ type Babi = {
   kode_babi: string;
   jenis_kelamin: string;
   tanggal_lahir: string;
-  status_kesehatan: string;
   status_reproduksi: string;
   kandang_id: string;
   kandang: Kandang;
   vaksinasi?: { id: string }[]; // count from join
+  user_email?: string | null;
 };
 
 export default function DataBabiPage() {
@@ -61,11 +61,21 @@ export default function DataBabiPage() {
 
   const fetchData = async () => {
     setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    const userEmail = user?.email;
+
+    if (!userEmail) {
+      setKandangList([]);
+      setBabiList([]);
+      setLoading(false);
+      return;
+    }
 
     // Fetch Kandang for dropdown
     const { data: kandangData } = await supabase
       .from('kandang')
       .select('id, nama_kandang')
+      .eq('user_email', userEmail)
       .order('nama_kandang');
 
     if (kandangData) setKandangList(kandangData);
@@ -81,6 +91,7 @@ export default function DataBabiPage() {
         kandang:kandang_id(id, nama_kandang),
         vaksinasi(id)
       `)
+      .eq('user_email', userEmail)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -94,6 +105,13 @@ export default function DataBabiPage() {
 
   const handleAddBabi = async (e: React.FormEvent) => {
     e.preventDefault();
+    const { data: { user } } = await supabase.auth.getUser();
+    const userEmail = user?.email;
+
+    if (!userEmail) {
+      alert('Session login tidak ditemukan. Silakan login ulang.');
+      return;
+    }
 
     if (isEditMode && selectedBabi) {
       // Edit Mode
@@ -107,6 +125,7 @@ export default function DataBabiPage() {
           status_reproduksi: formData.status_reproduksi
         })
         .eq('id', selectedBabi.id)
+        .eq('user_email', userEmail)
         .select(`
           *,
           kandang:kandang_id(id, nama_kandang)
@@ -130,7 +149,8 @@ export default function DataBabiPage() {
             jenis_kelamin: formData.jenis_kelamin,
             tanggal_lahir: formData.tanggal_lahir,
             kandang_id: formData.kandang_id,
-            status_reproduksi: formData.status_reproduksi
+            status_reproduksi: formData.status_reproduksi,
+            user_email: userEmail
           }
         ])
         .select(`
@@ -182,6 +202,13 @@ export default function DataBabiPage() {
   const handleAddVaccinationRecord = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBabi) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    const userEmail = user?.email;
+
+    if (!userEmail) {
+      alert('Session login tidak ditemukan. Silakan login ulang.');
+      return;
+    }
 
     const { error: vaccError } = await supabase
       .from('vaksinasi')
@@ -191,7 +218,8 @@ export default function DataBabiPage() {
           jenis_vaksin: vaccinationData.jenis_vaksin,
           tanggal_vaksin: vaccinationData.tanggal_vaksin,
           tanggal_berikutnya: vaccinationData.tanggal_berikutnya,
-          catatan: vaccinationData.catatan
+          catatan: vaccinationData.catatan,
+          user_email: userEmail
         }
       ]);
 
@@ -212,11 +240,14 @@ export default function DataBabiPage() {
 
   const handleDeleteBabi = async (id: string, kode: string) => {
     if (!window.confirm(`Apakah Anda yakin ingin menghapus babi dengan kode ${kode}? Semua data terkait (kesehatan, reproduksi) mungkin akan ikut terhapus atau menjadi yatim.`)) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    const userEmail = user?.email;
 
     const { error } = await supabase
       .from('babi')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_email', userEmail ?? '');
 
     if (error) {
       alert('Gagal menghapus data babi: ' + error.message);
@@ -231,15 +262,6 @@ export default function DataBabiPage() {
     const now = new Date();
     const months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
     return months === 0 ? '< 1 Bulan' : `${months} Bulan`;
-  };
-
-  // Helper: get vaksin status badge config from count
-  const getVaksinStatus = (babi: Babi) => {
-    const count = babi.vaksinasi?.length ?? 0;
-    if (count === 0) return { label: 'Belum Vaksin', className: 'bg-destructive/10 text-destructive border-destructive/20' };
-    if (count === 1) return { label: 'Vaksinasi 1×', className: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20 dark:text-yellow-400' };
-    if (count === 2) return { label: 'Vaksinasi 2×', className: 'bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400' };
-    return { label: 'Vaksin Lengkap', className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
   };
 
   const filteredBabi = babiList.filter((b) => {

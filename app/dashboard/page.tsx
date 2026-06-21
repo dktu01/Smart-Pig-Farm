@@ -11,8 +11,6 @@ import {
   Baby,
   Bell,
   CheckCircle2,
-  Home,
-  CalendarClock,
   Droplets
 } from 'lucide-react';
 
@@ -36,6 +34,21 @@ export default function DashboardPage() {
   const fetchDashboardData = async () => {
     setLoading(true);
     const today = new Date().toISOString().split('T')[0];
+    const { data: { user } } = await supabase.auth.getUser();
+    const userEmail = user?.email;
+
+    if (!userEmail) {
+      setSummary({
+        population: 0,
+        nearestVaccine: 'Belum ada jadwal',
+        nearestBirth: 'Belum ada jadwal',
+        sanitationStatus: 'Belum ada jadwal',
+        sanitationDetail: 'Belum ada jadwal',
+      });
+      setRemindersList([]);
+      setLoading(false);
+      return;
+    }
     
     const [
       babiRes,
@@ -43,10 +56,10 @@ export default function DashboardPage() {
       sanitasiRes,
       lahirRes
     ] = await Promise.all([
-      supabase.from('babi').select('*', { count: 'exact', head: true }),
-      supabase.from('vaksinasi').select('*, babi:babi_id(kode_babi)').not('tanggal_berikutnya', 'is', null).gte('tanggal_berikutnya', today).order('tanggal_berikutnya').limit(1),
-      supabase.from('sanitasi').select('*, kandang:kandang_id(nama_kandang)').not('tanggal_berikutnya', 'is', null).gte('tanggal_berikutnya', today).order('tanggal_berikutnya').limit(1),
-      supabase.from('reproduksi').select('*, babi_betina:babi_betina_id(kode_babi)').eq('status_bunting', true).is('tanggal_melahirkan', null).not('estimasi_lahir', 'is', null).gte('estimasi_lahir', today).order('estimasi_lahir').limit(1)
+      supabase.from('babi').select('*', { count: 'exact', head: true }).eq('user_email', userEmail),
+      supabase.from('vaksinasi').select('*, babi:babi_id(kode_babi)').eq('user_email', userEmail).not('tanggal_berikutnya', 'is', null).gte('tanggal_berikutnya', today).order('tanggal_berikutnya').limit(1),
+      supabase.from('sanitasi').select('*, kandang:kandang_id(nama_kandang)').eq('user_email', userEmail).not('tanggal_berikutnya', 'is', null).gte('tanggal_berikutnya', today).order('tanggal_berikutnya').limit(1),
+      supabase.from('reproduksi').select('*, babi_betina:babi_betina_id(kode_babi)').eq('user_email', userEmail).eq('status_bunting', true).is('tanggal_melahirkan', null).not('estimasi_lahir', 'is', null).gte('estimasi_lahir', today).order('estimasi_lahir').limit(1)
     ]);
 
     const nearestVaccine = vaksinRes.data?.[0];
