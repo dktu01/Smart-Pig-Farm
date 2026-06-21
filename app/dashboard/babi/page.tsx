@@ -100,7 +100,9 @@ export default function DataBabiPage() {
       setBabiList(babiData as any);
     } catch (error: any) {
       console.error('Error fetching babi data:', error);
-      alert('Gagal mengambil data: ' + error.message);
+      // Tampilkan empty state, jangan alert yang mengganggu
+      setBabiList([]);
+      setKandangList([]);
     } finally {
       setLoading(false);
     }

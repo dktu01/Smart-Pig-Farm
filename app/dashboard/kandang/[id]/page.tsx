@@ -72,7 +72,7 @@ export default function DetailKandangPage() {
       if (sanData) setSanitasiList(sanData);
     } catch (error: any) {
       console.error('Error fetching detail data:', error);
-      alert('Gagal mengambil data detail kandang: ' + error.message);
+      // Tampilkan empty state, jangan alert yang mengganggu
     } finally {
       setLoading(false);
     }

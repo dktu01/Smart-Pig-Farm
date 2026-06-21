@@ -78,7 +78,7 @@ export default function DetailBabiPage() {
       }
     } catch (error: any) {
       console.error('Error fetching detail babi:', error);
-      alert('Gagal memuat data: ' + error.message);
+      // Tampilkan empty state, jangan alert yang mengganggu
     } finally {
       setLoading(false);
     }

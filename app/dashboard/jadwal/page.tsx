@@ -109,7 +109,8 @@ export default function JadwalPage() {
       setJadwal(combined);
     } catch (error: any) {
       console.error('Error fetching jadwal:', error);
-      alert('Gagal memuat jadwal: ' + error.message);
+      // Tampilkan empty state, jangan alert yang mengganggu
+      setJadwal([]);
     } finally {
       setLoading(false);
     }

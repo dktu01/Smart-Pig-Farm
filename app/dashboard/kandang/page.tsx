@@ -65,7 +65,8 @@ export default function KandangPage() {
       setKandangList(data || []);
     } catch (error: any) {
       console.error('Error fetching kandang:', error);
-      alert('Gagal mengambil data kandang: ' + error.message);
+      // Jangan alert agar tidak mengganggu UX, tampilkan list kosong
+      setKandangList([]);
     } finally {
       setLoading(false);
     }
