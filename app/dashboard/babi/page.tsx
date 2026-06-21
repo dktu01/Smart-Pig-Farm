@@ -352,12 +352,12 @@ export default function DataBabiPage() {
           </button>
         </div>
       ) : (
-          <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden flex flex-col">
+          <div className="bg-card border border-border rounded-xl shadow-sm overflow-visible flex flex-col">
           {/* Close dropdown on outside click */}
           {openDropdownId && (
             <div className="fixed inset-0 z-10" onClick={() => setOpenDropdownId(null)} />
           )}
-          <div className="hidden md:block overflow-x-auto">
+          <div className="hidden md:block overflow-visible">
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-secondary/50 text-muted-foreground uppercase text-xs font-semibold tracking-wider">
                 <tr>

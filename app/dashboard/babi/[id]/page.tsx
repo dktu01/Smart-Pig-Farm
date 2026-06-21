@@ -158,7 +158,7 @@ export default function DetailBabiPage() {
   };
 
   const handleDeleteReproduksi = async (repId: string) => {
-    if (!window.confirm('Yakin ingin menghapus riwayat reproduksi ini?')) return;
+    if (!window.confirm('Apakah Anda yakin ingin menghapus data reproduksi ini?')) return;
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -360,27 +360,14 @@ export default function DetailBabiPage() {
                         </td>
                         <td className="py-3 px-4 text-orange-500">{r.estimasi_lahir || '-'}</td>
                         <td className="py-3 px-4 font-medium text-emerald-500">{r.tanggal_melahirkan || 'Belum Lahir'}</td>
-                        <td className="py-3 pl-4 text-right relative">
+                        <td className="py-3 pl-4 text-right">
                           <button
-                            onClick={() => setOpenDropdownId(openDropdownId === r.id ? null : r.id)}
-                            className="text-muted-foreground hover:text-foreground p-2 rounded-lg hover:bg-secondary transition-colors"
+                            onClick={() => handleDeleteReproduksi(r.id)}
+                            className="text-destructive/70 hover:text-destructive hover:bg-destructive/10 p-2 rounded-lg transition-colors inline-flex items-center justify-center"
+                            title="Hapus Riwayat"
                           >
-                            <MoreHorizontal className="w-4 h-4" />
+                            <Trash2 className="w-5 h-5" />
                           </button>
-                          {openDropdownId === r.id && (
-                            <>
-                              <div className="fixed inset-0 z-40" onClick={() => setOpenDropdownId(null)}></div>
-                              <div className="absolute right-0 top-full mt-1 w-40 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden">
-                                <button
-                                  onClick={() => { setOpenDropdownId(null); handleDeleteReproduksi(r.id); }}
-                                  className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                  Hapus Riwayat
-                                </button>
-                              </div>
-                            </>
-                          )}
                         </td>
                       </tr>
                     ))}

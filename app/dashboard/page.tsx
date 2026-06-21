@@ -191,7 +191,12 @@ export default function DashboardPage() {
                 {loading ? (
                   <div className="h-8 w-16 bg-secondary animate-pulse rounded mt-1"></div>
                 ) : (
-                  <h3 className="text-2xl font-bold text-foreground leading-tight">{stat.value}</h3>
+                  <h3 
+                    className={`text-foreground leading-tight truncate ${typeof stat.value === 'number' ? 'text-3xl font-bold' : 'text-base font-semibold'}`} 
+                    title={String(stat.value)}
+                  >
+                    {stat.value}
+                  </h3>
                 )}
                 {loading ? (
                    <div className="h-4 w-24 bg-secondary animate-pulse rounded mt-2"></div>
