@@ -61,106 +61,106 @@ export default function DataBabiPage() {
 
   const fetchData = async () => {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    const userEmail = user?.email;
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      const userEmail = user?.email;
 
-    if (!userEmail) {
-      setKandangList([]);
-      setBabiList([]);
-      setLoading(false);
-      return;
-    }
+      if (!userEmail) {
+        setKandangList([]);
+        setBabiList([]);
+        return;
+      }
 
-    // Fetch Kandang for dropdown
-    const { data: kandangData } = await supabase
-      .from('kandang')
-      .select('id, nama_kandang')
-      .eq('user_email', userEmail)
-      .order('nama_kandang');
+      // Fetch Kandang for dropdown
+      const { data: kandangData, error: kandangErr } = await supabase
+        .from('kandang')
+        .select('id, nama_kandang')
+        .eq('user_email', userEmail)
+        .order('nama_kandang');
 
-    if (kandangData) setKandangList(kandangData);
-    if (kandangData && kandangData.length > 0 && !formData.kandang_id) {
-      setFormData(prev => ({ ...prev, kandang_id: kandangData[0].id }));
-    }
+      if (kandangErr) throw kandangErr;
+      if (kandangData) setKandangList(kandangData);
+      if (kandangData && kandangData.length > 0 && !formData.kandang_id) {
+        setFormData(prev => ({ ...prev, kandang_id: kandangData[0].id }));
+      }
 
-    // Fetch Babi with Kandang relation AND vaksinasi count
-    const { data: babiData, error } = await supabase
-      .from('babi')
-      .select(`
-        *,
-        kandang:kandang_id(id, nama_kandang),
-        vaksinasi(id)
-      `)
-      .eq('user_email', userEmail)
-      .order('created_at', { ascending: false });
+      // Fetch Babi with Kandang relation AND vaksinasi count
+      const { data: babiData, error } = await supabase
+        .from('babi')
+        .select(`
+          *,
+          kandang:kandang_id(id, nama_kandang),
+          vaksinasi(id)
+        `)
+        .eq('user_email', userEmail)
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching babi:', error);
-    } else {
+      if (error) throw error;
       setBabiList(babiData as any);
+    } catch (error: any) {
+      console.error('Error fetching babi data:', error);
+      alert('Gagal mengambil data: ' + error.message);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const handleAddBabi = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { data: { user } } = await supabase.auth.getUser();
-    const userEmail = user?.email;
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      const userEmail = user?.email;
 
-    if (!userEmail) {
-      alert('Session login tidak ditemukan. Silakan login ulang.');
-      return;
-    }
-
-    if (isEditMode && selectedBabi) {
-      // Edit Mode
-      const { data, error } = await supabase
-        .from('babi')
-        .update({
-          kode_babi: formData.kode_babi,
-          jenis_kelamin: formData.jenis_kelamin,
-          tanggal_lahir: formData.tanggal_lahir,
-          kandang_id: formData.kandang_id,
-          status_reproduksi: formData.status_reproduksi
-        })
-        .eq('id', selectedBabi.id)
-        .eq('user_email', userEmail)
-        .select(`
-          *,
-          kandang:kandang_id(id, nama_kandang)
-        `);
-
-      if (error) {
-        alert('Gagal mengupdate babi: ' + error.message);
-      } else {
-        setBabiList(babiList.map(b => b.id === selectedBabi.id ? data[0] as any : b));
-        setIsAddModalOpen(false);
-        setIsEditMode(false);
-        setSelectedBabi(null);
+      if (!userEmail) {
+        alert('Session login tidak ditemukan. Silakan login ulang.');
+        return;
       }
-    } else {
-      // Add Mode
-      const { data, error } = await supabase
-        .from('babi')
-        .insert([
-          {
+
+      if (isEditMode && selectedBabi) {
+        // Edit Mode
+        const { data, error } = await supabase
+          .from('babi')
+          .update({
             kode_babi: formData.kode_babi,
             jenis_kelamin: formData.jenis_kelamin,
             tanggal_lahir: formData.tanggal_lahir,
             kandang_id: formData.kandang_id,
-            status_reproduksi: formData.status_reproduksi,
-            user_email: userEmail
-          }
-        ])
-        .select(`
-          *,
-          kandang:kandang_id(id, nama_kandang)
-        `);
+            status_reproduksi: formData.status_reproduksi
+          })
+          .eq('id', selectedBabi.id)
+          .eq('user_email', userEmail)
+          .select(`
+            *,
+            kandang:kandang_id(id, nama_kandang)
+          `);
 
-      if (error) {
-        alert('Gagal menambahkan babi: ' + error.message);
+        if (error) throw error;
+        setBabiList(babiList.map(b => b.id === selectedBabi.id ? data[0] as any : b));
+        setIsAddModalOpen(false);
+        setIsEditMode(false);
+        setSelectedBabi(null);
       } else {
+        // Add Mode
+        const { data, error } = await supabase
+          .from('babi')
+          .insert([
+            {
+              kode_babi: formData.kode_babi,
+              jenis_kelamin: formData.jenis_kelamin,
+              tanggal_lahir: formData.tanggal_lahir,
+              kandang_id: formData.kandang_id,
+              status_reproduksi: formData.status_reproduksi,
+              user_email: userEmail
+            }
+          ])
+          .select(`
+            *,
+            kandang:kandang_id(id, nama_kandang)
+          `);
+
+        if (error) throw error;
         setBabiList([data[0] as any, ...babiList]);
         setIsAddModalOpen(false);
         setFormData({
@@ -169,6 +169,8 @@ export default function DataBabiPage() {
           status_reproduksi: 'Belum Kawin'
         });
       }
+    } catch (error: any) {
+      alert('Gagal menyimpan data babi: ' + error.message);
     }
   };
 
@@ -202,57 +204,62 @@ export default function DataBabiPage() {
   const handleAddVaccinationRecord = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBabi) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    const userEmail = user?.email;
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      const userEmail = user?.email;
 
-    if (!userEmail) {
-      alert('Session login tidak ditemukan. Silakan login ulang.');
-      return;
+      if (!userEmail) {
+        alert('Session login tidak ditemukan. Silakan login ulang.');
+        return;
+      }
+
+      const { error: vaccError } = await supabase
+        .from('vaksinasi')
+        .insert([
+          {
+            babi_id: selectedBabi.id,
+            jenis_vaksin: vaccinationData.jenis_vaksin,
+            tanggal_vaksin: vaccinationData.tanggal_vaksin,
+            tanggal_berikutnya: vaccinationData.tanggal_berikutnya || null,
+            catatan: vaccinationData.catatan,
+            user_email: userEmail
+          }
+        ]);
+
+      if (vaccError) throw vaccError;
+      
+      // Update local vaksinasi count
+      setBabiList(prev => prev.map(b =>
+        b.id === selectedBabi.id
+          ? { ...b, vaksinasi: [...(b.vaksinasi || []), { id: 'new' }] }
+          : b
+      ));
+      setIsVaccinationModalOpen(false);
+      setVaccinationData({ jenis_vaksin: '', tanggal_vaksin: new Date().toISOString().split('T')[0], tanggal_berikutnya: '', catatan: '' });
+      alert('Data vaksinasi berhasil disimpan!');
+    } catch (error: any) {
+      alert('Gagal menyimpan vaksinasi: ' + error.message);
     }
-
-    const { error: vaccError } = await supabase
-      .from('vaksinasi')
-      .insert([
-        {
-          babi_id: selectedBabi.id,
-          jenis_vaksin: vaccinationData.jenis_vaksin,
-          tanggal_vaksin: vaccinationData.tanggal_vaksin,
-          tanggal_berikutnya: vaccinationData.tanggal_berikutnya,
-          catatan: vaccinationData.catatan,
-          user_email: userEmail
-        }
-      ]);
-
-    if (vaccError) {
-      alert('Gagal menyimpan vaksinasi: ' + vaccError.message);
-      return;
-    }
-    // Update local vaksinasi count
-    setBabiList(prev => prev.map(b =>
-      b.id === selectedBabi.id
-        ? { ...b, vaksinasi: [...(b.vaksinasi || []), { id: 'new' }] }
-        : b
-    ));
-    setIsVaccinationModalOpen(false);
-    setVaccinationData({ jenis_vaksin: '', tanggal_vaksin: new Date().toISOString().split('T')[0], tanggal_berikutnya: '', catatan: '' });
-    alert('Data vaksinasi berhasil disimpan!');
   };
 
   const handleDeleteBabi = async (id: string, kode: string) => {
     if (!window.confirm(`Apakah Anda yakin ingin menghapus babi dengan kode ${kode}? Semua data terkait (kesehatan, reproduksi) mungkin akan ikut terhapus atau menjadi yatim.`)) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    const userEmail = user?.email;
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      const userEmail = user?.email;
 
-    const { error } = await supabase
-      .from('babi')
-      .delete()
-      .eq('id', id)
-      .eq('user_email', userEmail ?? '');
+      const { error } = await supabase
+        .from('babi')
+        .delete()
+        .eq('id', id)
+        .eq('user_email', userEmail ?? '');
 
-    if (error) {
-      alert('Gagal menghapus data babi: ' + error.message);
-    } else {
+      if (error) throw error;
       setBabiList(babiList.filter(b => b.id !== id));
+    } catch (error: any) {
+      alert('Gagal menghapus data babi: ' + error.message);
     }
   };
 
@@ -297,8 +304,8 @@ export default function DataBabiPage() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center gap-4 bg-card border border-border p-3 rounded-xl shadow-sm">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-card border border-border p-3 rounded-xl shadow-sm">
+        <div className="relative flex-1 w-full max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
@@ -309,7 +316,7 @@ export default function DataBabiPage() {
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value as 'Semua' | 'Indukan')}
-          className="bg-background border border-input rounded-lg text-sm px-3 py-2 text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+          className="w-full sm:w-auto bg-background border border-input rounded-lg text-sm px-3 py-2 text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
         >
           <option value="Semua">Kategori: Semua</option>
           <option value="Indukan">Indukan (kawin)</option>

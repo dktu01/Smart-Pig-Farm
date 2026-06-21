@@ -32,107 +32,150 @@ export default function DetailBabiPage() {
 
   const fetchDetailData = async () => {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    const userEmail = user?.email;
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      const userEmail = user?.email;
 
-    if (!userEmail) {
-      setBabi(null);
-      setVaksinasi([]);
-      setReproduksi([]);
-      setLoading(false);
-      return;
-    }
-    
-    // Fetch Basic Info
-    const { data: babiData } = await supabase
-      .from('babi')
-      .select('*, kandang:kandang_id(nama_kandang)')
-      .eq('id', id)
-      .eq('user_email', userEmail)
-      .single();
+      if (!userEmail) {
+        setBabi(null);
+        setVaksinasi([]);
+        setReproduksi([]);
+        return;
+      }
       
-    if (babiData) setBabi(babiData);
-
-    // Fetch Vaksinasi
-    const { data: vakData } = await supabase
-      .from('vaksinasi')
-      .select('*')
-      .eq('babi_id', id)
-      .eq('user_email', userEmail)
-      .order('tanggal_vaksin', { ascending: false });
-    if (vakData) setVaksinasi(vakData);
-
-    // Fetch Reproduksi (jika betina)
-    if (babiData?.jenis_kelamin === 'Betina') {
-      const { data: repData } = await supabase
-        .from('reproduksi')
-        .select('*, jantan:babi_jantan_id(kode_babi)')
-        .eq('babi_betina_id', id)
+      // Fetch Basic Info
+      const { data: babiData, error: babiErr } = await supabase
+        .from('babi')
+        .select('*, kandang:kandang_id(nama_kandang)')
+        .eq('id', id)
         .eq('user_email', userEmail)
-        .order('tanggal_kawin', { ascending: false });
-      if (repData) setReproduksi(repData);
-    }
+        .single();
+        
+      if (babiErr) throw babiErr;
+      if (babiData) setBabi(babiData);
 
-    setLoading(false);
+      // Fetch Vaksinasi
+      const { data: vakData, error: vakErr } = await supabase
+        .from('vaksinasi')
+        .select('*')
+        .eq('babi_id', id)
+        .eq('user_email', userEmail)
+        .order('tanggal_vaksin', { ascending: false });
+      if (vakErr) throw vakErr;
+      if (vakData) setVaksinasi(vakData);
+
+      // Fetch Reproduksi (jika betina)
+      if (babiData?.jenis_kelamin === 'Betina') {
+        const { data: repData, error: repErr } = await supabase
+          .from('reproduksi')
+          .select('*, jantan:babi_jantan_id(kode_babi)')
+          .eq('babi_betina_id', id)
+          .eq('user_email', userEmail)
+          .order('tanggal_kawin', { ascending: false });
+        if (repErr) throw repErr;
+        if (repData) setReproduksi(repData);
+      }
+    } catch (error: any) {
+      console.error('Error fetching detail babi:', error);
+      alert('Gagal memuat data: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAddVaksin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { data: { user } } = await supabase.auth.getUser();
-    const userEmail = user?.email;
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      const userEmail = user?.email;
 
-    if (!userEmail) {
-      alert('Session login tidak ditemukan. Silakan login ulang.');
-      return;
+      if (!userEmail) {
+        alert('Session login tidak ditemukan. Silakan login ulang.');
+        return;
+      }
+      const { data, error } = await supabase.from('vaksinasi').insert([{
+        babi_id: id,
+        jenis_vaksin: vakForm.jenis_vaksin,
+        tanggal_vaksin: vakForm.tanggal_vaksin,
+        tanggal_berikutnya: vakForm.tanggal_berikutnya || null,
+        catatan: vakForm.catatan,
+        user_email: userEmail
+      }]).select();
+
+      if (error) throw error;
+      if (data) {
+        setVaksinasi([data[0], ...vaksinasi]);
+        setIsVakModalOpen(false);
+        setVakForm({ jenis_vaksin: '', tanggal_vaksin: new Date().toISOString().split('T')[0], tanggal_berikutnya: '', catatan: '' });
+      }
+    } catch (error: any) {
+      alert('Gagal menyimpan vaksinasi: ' + error.message);
     }
-    const { data, error } = await supabase.from('vaksinasi').insert([{
-      babi_id: id,
-      jenis_vaksin: vakForm.jenis_vaksin,
-      tanggal_vaksin: vakForm.tanggal_vaksin,
-      tanggal_berikutnya: vakForm.tanggal_berikutnya || null,
-      catatan: vakForm.catatan,
-      user_email: userEmail
-    }]).select();
-
-    if (!error && data) {
-      setVaksinasi([data[0], ...vaksinasi]);
-      setIsVakModalOpen(false);
-      setVakForm({ jenis_vaksin: '', tanggal_vaksin: new Date().toISOString().split('T')[0], tanggal_berikutnya: '', catatan: '' });
-    } else alert(error?.message);
   };
 
   const handleAddReproduksi = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { data: { user } } = await supabase.auth.getUser();
-    const userEmail = user?.email;
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      const userEmail = user?.email;
 
-    if (!userEmail) {
-      alert('Session login tidak ditemukan. Silakan login ulang.');
-      return;
+      if (!userEmail) {
+        alert('Session login tidak ditemukan. Silakan login ulang.');
+        return;
+      }
+      // Resolve jantan ID from kode_babi
+      const { data: jantanData } = await supabase
+        .from('babi')
+        .select('id')
+        .eq('kode_babi', repForm.babi_jantan_kode)
+        .eq('user_email', userEmail)
+        .single();
+      
+      const { data, error } = await supabase.from('reproduksi').insert([{
+        babi_betina_id: id,
+        babi_jantan_id: jantanData?.id || null,
+        tanggal_kawin: repForm.tanggal_kawin,
+        status_bunting: repForm.status_bunting,
+        estimasi_lahir: repForm.estimasi_lahir || null,
+        user_email: userEmail
+      }]).select('*, jantan:babi_jantan_id(kode_babi)');
+
+      if (error) throw error;
+      if (data) {
+        setReproduksi([data[0], ...reproduksi]);
+        setIsRepModalOpen(false);
+        setRepForm({ babi_jantan_kode: '', tanggal_kawin: new Date().toISOString().split('T')[0], status_bunting: false, estimasi_lahir: '' });
+        await supabase.from('babi').update({ status_reproduksi: repForm.status_bunting ? 'Bunting' : 'Sudah Kawin' }).eq('id', id).eq('user_email', userEmail);
+        setBabi({...babi, status_reproduksi: repForm.status_bunting ? 'Bunting' : 'Sudah Kawin'});
+      }
+    } catch (error: any) {
+      alert('Gagal menyimpan data reproduksi: ' + error.message);
     }
-    // Resolve jantan ID if needed, but for simplicity we just store the code if schema allows, or find ID
-    const { data: jantanData } = await supabase.from('babi').select('id').eq('kode_babi', repForm.babi_jantan_kode).single();
-    
-    const { data, error } = await supabase.from('reproduksi').insert([{
-      babi_betina_id: id,
-      babi_jantan_id: jantanData?.id || null,
-      tanggal_kawin: repForm.tanggal_kawin,
-      status_bunting: repForm.status_bunting,
-      estimasi_lahir: repForm.estimasi_lahir || null,
-      user_email: userEmail
-    }]).select('*, jantan:babi_jantan_id(kode_babi)');
-
-    if (!error && data) {
-      setReproduksi([data[0], ...reproduksi]);
-      setIsRepModalOpen(false);
-      setRepForm({ babi_jantan_kode: '', tanggal_kawin: new Date().toISOString().split('T')[0], status_bunting: false, estimasi_lahir: '' });
-      await supabase.from('babi').update({ status_reproduksi: repForm.status_bunting ? 'Bunting' : 'Sudah Kawin' }).eq('id', id).eq('user_email', userEmail);
-      setBabi({...babi, status_reproduksi: repForm.status_bunting ? 'Bunting' : 'Sudah Kawin'});
-    } else alert(error?.message);
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-muted-foreground animate-pulse">Memuat detail babi...</div>;
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-secondary" />
+          <div className="space-y-2">
+            <div className="h-6 w-48 rounded bg-secondary" />
+            <div className="h-4 w-64 rounded bg-secondary" />
+          </div>
+        </div>
+        <div className="flex gap-4 border-b border-border pb-0">
+          {[1,2,3].map(i => <div key={i} className="h-10 w-28 rounded-t-lg bg-secondary" />)}
+        </div>
+        <div className="bg-card border border-border rounded-xl p-6 space-y-4 min-h-[400px]">
+          <div className="grid grid-cols-2 gap-6">
+            {[1,2,3,4,5,6].map(i => <div key={i} className="h-5 rounded bg-secondary" />)}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!babi) {

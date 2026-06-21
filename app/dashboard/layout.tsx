@@ -28,7 +28,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   const { session, clearSession } = useAuthSession();
-  const logoSrc = '/assets/logo-placeholder.svg';
 
   useEffect(() => {
     const checkUser = async () => {
@@ -65,7 +64,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="h-16 flex items-center justify-between px-6 border-b border-border">
             <Link href="/dashboard" className="flex items-center gap-2">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                  <img src={logoSrc} alt="Smart Pig Farm logo placeholder" className="h-5 w-5 object-contain" />
+                  <PiggyBank className="h-5 w-5" />
                 </div>
                 <div>
                   <span className="block text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Smart Pig Farm</span>
@@ -139,7 +138,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </button>
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <img src={logoSrc} alt="Smart Pig Farm logo placeholder" className="h-4 w-4 object-contain" />
+              <PiggyBank className="h-4 w-4" />
             </div>
             <div className="leading-tight">
               <span className="block text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Smart Pig Farm</span>

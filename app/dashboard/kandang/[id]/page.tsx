@@ -26,72 +26,87 @@ export default function DetailKandangPage() {
 
   const fetchDetailData = async () => {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    const userEmail = user?.email;
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      const userEmail = user?.email;
 
-    if (!userEmail) {
-      setKandang(null);
-      setBabiList([]);
-      setSanitasiList([]);
+      if (!userEmail) {
+        setKandang(null);
+        setBabiList([]);
+        setSanitasiList([]);
+        return;
+      }
+      
+      // Fetch Kandang
+      const { data: kandangData, error: kandangErr } = await supabase
+        .from('kandang')
+        .select('*')
+        .eq('id', id)
+        .eq('user_email', userEmail)
+        .single();
+        
+      if (kandangErr) throw kandangErr;
+      if (kandangData) setKandang(kandangData);
+
+      // Fetch Babi in this Kandang
+      const { data: babiData, error: babiErr } = await supabase
+        .from('babi')
+        .select('*')
+        .eq('kandang_id', id)
+        .eq('user_email', userEmail)
+        .order('created_at', { ascending: false });
+        
+      if (babiErr) throw babiErr;
+      if (babiData) setBabiList(babiData);
+
+      // Fetch Sanitasi history
+      const { data: sanData, error: sanErr } = await supabase
+        .from('sanitasi')
+        .select('*')
+        .eq('kandang_id', id)
+        .eq('user_email', userEmail)
+        .order('tanggal_semprot', { ascending: false });
+
+      if (sanErr) throw sanErr;
+      if (sanData) setSanitasiList(sanData);
+    } catch (error: any) {
+      console.error('Error fetching detail data:', error);
+      alert('Gagal mengambil data detail kandang: ' + error.message);
+    } finally {
       setLoading(false);
-      return;
     }
-    
-    // Fetch Kandang
-    const { data: kandangData } = await supabase
-      .from('kandang')
-      .select('*')
-      .eq('id', id)
-      .eq('user_email', userEmail)
-      .single();
-      
-    if (kandangData) setKandang(kandangData);
-
-    // Fetch Babi in this Kandang
-    const { data: babiData } = await supabase
-      .from('babi')
-      .select('*')
-      .eq('kandang_id', id)
-      .eq('user_email', userEmail)
-      .order('created_at', { ascending: false });
-      
-    if (babiData) setBabiList(babiData);
-
-    // Fetch Sanitasi history
-    const { data: sanData } = await supabase
-      .from('sanitasi')
-      .select('*')
-      .eq('kandang_id', id)
-      .eq('user_email', userEmail)
-      .order('tanggal_semprot', { ascending: false });
-
-    if (sanData) setSanitasiList(sanData);
-
-    setLoading(false);
   };
 
   const handleAddSanitasi = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { data: { user } } = await supabase.auth.getUser();
-    const userEmail = user?.email;
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      const userEmail = user?.email;
 
-    if (!userEmail) {
-      alert('Session login tidak ditemukan. Silakan login ulang.');
-      return;
+      if (!userEmail) {
+        alert('Session login tidak ditemukan. Silakan login ulang.');
+        return;
+      }
+      const { data, error } = await supabase.from('sanitasi').insert([{
+        kandang_id: id,
+        tanggal_semprot: sanitasiForm.tanggal_semprot,
+        jenis_disinfektan: sanitasiForm.jenis_disinfektan,
+        tanggal_berikutnya: sanitasiForm.tanggal_berikutnya || null,
+        user_email: userEmail
+      }]).select();
+
+      if (error) throw error;
+
+      if (data) {
+        setSanitasiList([data[0], ...sanitasiList]);
+        setIsSanitasiModalOpen(false);
+        setSanitasiForm({ tanggal_semprot: new Date().toISOString().split('T')[0], jenis_disinfektan: '', tanggal_berikutnya: '' });
+      }
+    } catch (error: any) {
+      alert('Gagal menyimpan sanitasi: ' + error.message);
     }
-    const { data, error } = await supabase.from('sanitasi').insert([{
-      kandang_id: id,
-      tanggal_semprot: sanitasiForm.tanggal_semprot,
-      jenis_disinfektan: sanitasiForm.jenis_disinfektan,
-      tanggal_berikutnya: sanitasiForm.tanggal_berikutnya || null,
-      user_email: userEmail
-    }]).select();
-
-    if (!error && data) {
-      setSanitasiList([data[0], ...sanitasiList]);
-      setIsSanitasiModalOpen(false);
-      setSanitasiForm({ tanggal_semprot: new Date().toISOString().split('T')[0], jenis_disinfektan: '', tanggal_berikutnya: '' });
-    } else alert(error?.message);
   };
 
   if (loading) {
@@ -277,22 +292,6 @@ export default function DetailKandangPage() {
         </div>
       )}
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/90 backdrop-blur border-t md:hidden flex gap-3 z-50">
-        <button
-          onClick={() => setIsSanitasiModalOpen(true)}
-          className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-emerald-500 text-white py-3 font-semibold active:scale-95 transition-transform"
-        >
-          <SprayCan className="w-4 h-4" />
-          Selesai Sanitasi
-        </button>
-        <button
-          onClick={() => router.push('/dashboard/babi')}
-          className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground py-3 font-semibold active:scale-95 transition-transform"
-        >
-          <Plus className="w-4 h-4" />
-          Kelola Babi
-        </button>
-      </div>
     </div>
   );
 }

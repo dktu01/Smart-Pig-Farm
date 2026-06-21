@@ -45,55 +45,59 @@ export default function KandangPage() {
 
   const fetchKandang = async () => {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    const userEmail = user?.email;
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      const userEmail = user?.email;
 
-    if (!userEmail) {
-      setKandangList([]);
-      setLoading(false);
-      return;
-    }
+      if (!userEmail) {
+        setKandangList([]);
+        return;
+      }
 
-    const { data, error } = await supabase
-      .from('kandang')
-      .select('*, babi(id)')
-      .eq('user_email', userEmail)
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-      console.error('Error fetching kandang:', error);
-    } else {
+      const { data, error } = await supabase
+        .from('kandang')
+        .select('*, babi(id)')
+        .eq('user_email', userEmail)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
       setKandangList(data || []);
+    } catch (error: any) {
+      console.error('Error fetching kandang:', error);
+      alert('Gagal mengambil data kandang: ' + error.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleAddKandang = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { data: { user } } = await supabase.auth.getUser();
-    const userEmail = user?.email;
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      const userEmail = user?.email;
 
-    if (!userEmail) {
-      alert('Session login tidak ditemukan. Silakan login ulang.');
-      return;
-    }
-    
-    if (isEditMode && selectedKandang) {
-      // Edit Mode
-      const { data, error } = await supabase
-        .from('kandang')
-        .update({ 
-          nama_kandang: formData.nama_kandang, 
-          jenis_kandang: formData.jenis_kandang,
-          kapasitas: formData.kapasitas
-        })
-        .eq('id', selectedKandang.id)
-        .eq('user_email', userEmail)
-        .select();
+      if (!userEmail) {
+        alert('Session login tidak ditemukan. Silakan login ulang.');
+        return;
+      }
+      
+      if (isEditMode && selectedKandang) {
+        // Edit Mode
+        const { data, error } = await supabase
+          .from('kandang')
+          .update({ 
+            nama_kandang: formData.nama_kandang, 
+            jenis_kandang: formData.jenis_kandang,
+            kapasitas: formData.kapasitas
+          })
+          .eq('id', selectedKandang.id)
+          .eq('user_email', userEmail)
+          .select();
 
-      if (error) {
-        alert('Gagal mengupdate kandang: ' + error.message);
-      } else {
+        if (error) throw error;
+        
         const updatedList = kandangList.map(k => {
           if (k.id === selectedKandang.id) {
             return { ...k, ...data[0], babi: k.babi };
@@ -104,24 +108,22 @@ export default function KandangPage() {
         setIsAddModalOpen(false);
         setIsEditMode(false);
         setSelectedKandang(null);
-      }
-    } else {
-      // Add Mode
-      const { data, error } = await supabase
-        .from('kandang')
-        .insert([
-          { 
-            nama_kandang: formData.nama_kandang, 
-            jenis_kandang: formData.jenis_kandang,
-            kapasitas: formData.kapasitas,
-            user_email: userEmail
-          }
-        ])
-        .select();
-
-      if (error) {
-        alert('Gagal menambahkan kandang: ' + error.message);
       } else {
+        // Add Mode
+        const { data, error } = await supabase
+          .from('kandang')
+          .insert([
+            { 
+              nama_kandang: formData.nama_kandang, 
+              jenis_kandang: formData.jenis_kandang,
+              kapasitas: formData.kapasitas,
+              user_email: userEmail
+            }
+          ])
+          .select();
+
+        if (error) throw error;
+        
         const newKandang = { ...data[0], babi: [] };
         setKandangList([newKandang, ...kandangList]);
         setIsAddModalOpen(false);
@@ -130,6 +132,8 @@ export default function KandangPage() {
         setSelectedKandang(newKandang as Kandang);
         setIsQRModalOpen(true);
       }
+    } catch (error: any) {
+      alert('Gagal menyimpan data kandang: ' + error.message);
     }
   };
 
@@ -146,19 +150,21 @@ export default function KandangPage() {
 
   const handleDeleteKandang = async (id: string, nama: string) => {
     if (!window.confirm(`Apakah Anda yakin ingin menghapus ${nama}? Pastikan kandang ini sudah kosong karena jika masih ada babi di dalamnya, proses hapus bisa gagal atau data babi menjadi yatim.`)) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    const userEmail = user?.email;
-    
-    const { error } = await supabase
-      .from('kandang')
-      .delete()
-      .eq('id', id)
-      .eq('user_email', userEmail ?? '');
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      const userEmail = user?.email;
+      
+      const { error } = await supabase
+        .from('kandang')
+        .delete()
+        .eq('id', id)
+        .eq('user_email', userEmail ?? '');
 
-    if (error) {
-      alert('Gagal menghapus kandang: ' + error.message);
-    } else {
+      if (error) throw error;
       setKandangList(kandangList.filter(k => k.id !== id));
+    } catch (error: any) {
+      alert('Gagal menghapus kandang: ' + error.message);
     }
   };
 
@@ -192,8 +198,8 @@ export default function KandangPage() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center gap-4 bg-card border border-border p-3 rounded-xl shadow-sm print:hidden">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-card border border-border p-3 rounded-xl shadow-sm print:hidden">
+        <div className="relative flex-1 w-full max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input 
             type="text" 
@@ -201,7 +207,7 @@ export default function KandangPage() {
             className="w-full pl-9 pr-4 py-2 bg-background border border-input rounded-lg text-sm text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
           />
         </div>
-        <select className="bg-background border border-input rounded-lg text-sm px-3 py-2 text-foreground focus:ring-2 focus:ring-primary focus:border-transparent">
+        <select className="w-full sm:w-auto bg-background border border-input rounded-lg text-sm px-3 py-2 text-foreground focus:ring-2 focus:ring-primary focus:border-transparent">
           <option value="">Semua Jenis</option>
           <option value="Indukan">Indukan</option>
           <option value="Anak">Anak Babi</option>

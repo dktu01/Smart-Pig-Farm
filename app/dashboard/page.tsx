@@ -33,106 +33,116 @@ export default function DashboardPage() {
 
   const fetchDashboardData = async () => {
     setLoading(true);
-    const today = new Date().toISOString().split('T')[0];
-    const { data: { user } } = await supabase.auth.getUser();
-    const userEmail = user?.email;
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      
+      const userEmail = user?.email;
 
-    if (!userEmail) {
+      if (!userEmail) {
+        setSummary({
+          population: 0,
+          nearestVaccine: 'Belum ada jadwal',
+          nearestBirth: 'Belum ada jadwal',
+          sanitationStatus: 'Belum ada jadwal',
+          sanitationDetail: 'Belum ada jadwal',
+        });
+        setRemindersList([]);
+        return;
+      }
+      
+      const [
+        babiRes,
+        vaksinRes,
+        sanitasiRes,
+        lahirRes
+      ] = await Promise.all([
+        supabase.from('babi').select('*', { count: 'exact', head: true }).eq('user_email', userEmail),
+        supabase.from('vaksinasi').select('*, babi:babi_id(kode_babi)').eq('user_email', userEmail).not('tanggal_berikutnya', 'is', null).gte('tanggal_berikutnya', today).order('tanggal_berikutnya').limit(1),
+        supabase.from('sanitasi').select('*, kandang:kandang_id(nama_kandang)').eq('user_email', userEmail).not('tanggal_berikutnya', 'is', null).gte('tanggal_berikutnya', today).order('tanggal_berikutnya').limit(1),
+        supabase.from('reproduksi').select('*, babi_betina:babi_betina_id(kode_babi)').eq('user_email', userEmail).eq('status_bunting', true).is('tanggal_melahirkan', null).not('estimasi_lahir', 'is', null).gte('estimasi_lahir', today).order('estimasi_lahir').limit(1)
+      ]);
+
+      if (babiRes.error) throw babiRes.error;
+      if (vaksinRes.error) throw vaksinRes.error;
+      if (sanitasiRes.error) throw sanitasiRes.error;
+      if (lahirRes.error) throw lahirRes.error;
+
+      const nearestVaccine = vaksinRes.data?.[0];
+      const nearestSanitation = sanitasiRes.data?.[0];
+      const nearestBirth = lahirRes.data?.[0];
+
       setSummary({
-        population: 0,
-        nearestVaccine: 'Belum ada jadwal',
-        nearestBirth: 'Belum ada jadwal',
-        sanitationStatus: 'Belum ada jadwal',
-        sanitationDetail: 'Belum ada jadwal',
+        population: babiRes.count || 0,
+        nearestVaccine: nearestVaccine
+          ? `${new Date(nearestVaccine.tanggal_berikutnya).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} · ${nearestVaccine.babi?.kode_babi || 'Massal'}`
+          : 'Belum ada jadwal',
+        nearestBirth: nearestBirth
+          ? `${new Date(nearestBirth.estimasi_lahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} · ${nearestBirth.babi_betina?.kode_babi || 'Indukan'}`
+          : 'Belum ada jadwal',
+        sanitationStatus: nearestSanitation
+          ? new Date(nearestSanitation.tanggal_berikutnya).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
+          : 'Belum ada jadwal',
+        sanitationDetail: nearestSanitation
+          ? `${nearestSanitation.kandang?.nama_kandang || 'Kandang'} · ${nearestSanitation.jenis_disinfektan || 'Sanitasi terdekat'}`
+          : 'Belum ada jadwal',
       });
-      setRemindersList([]);
+
+      const formattedReminders: any[] = [];
+      
+      if (vaksinRes.data) {
+        vaksinRes.data.forEach((v: any) => {
+          formattedReminders.push({
+            id: `v-${v.id}`,
+            title: `Vaksin ${v.jenis_vaksin} - ${v.babi?.kode_babi || 'Massal'}`,
+            time: v.tanggal_berikutnya === today ? 'Hari ini' : new Date(v.tanggal_berikutnya).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'}),
+            dateObj: new Date(v.tanggal_berikutnya),
+            type: 'vaccine',
+            icon: Syringe,
+            color: 'text-blue-500',
+            bg: 'bg-blue-500/10'
+          });
+        });
+      }
+
+      if (sanitasiRes.data) {
+        sanitasiRes.data.forEach((s: any) => {
+          formattedReminders.push({
+            id: `s-${s.id}`,
+            title: `Sanitasi ${s.kandang?.nama_kandang || 'Kandang'}`,
+            time: s.tanggal_berikutnya === today ? 'Hari ini' : new Date(s.tanggal_berikutnya).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'}),
+            dateObj: new Date(s.tanggal_berikutnya),
+            type: 'sanitation',
+            icon: SprayCan,
+            color: 'text-emerald-500',
+            bg: 'bg-emerald-500/10'
+          });
+        });
+      }
+
+      if (lahirRes.data) {
+        lahirRes.data.forEach((l: any) => {
+          formattedReminders.push({
+            id: `l-${l.id}`,
+            title: `Estimasi Lahir: ${l.babi_betina?.kode_babi}`,
+            time: l.estimasi_lahir === today ? 'Hari ini' : new Date(l.estimasi_lahir).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'}),
+            dateObj: new Date(l.estimasi_lahir),
+            type: 'birth',
+            icon: Baby,
+            color: 'text-pink-500',
+            bg: 'bg-pink-500/10'
+          });
+        });
+      }
+
+      formattedReminders.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+      setRemindersList(formattedReminders.slice(0, 5));
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
       setLoading(false);
-      return;
     }
-    
-    const [
-      babiRes,
-      vaksinRes,
-      sanitasiRes,
-      lahirRes
-    ] = await Promise.all([
-      supabase.from('babi').select('*', { count: 'exact', head: true }).eq('user_email', userEmail),
-      supabase.from('vaksinasi').select('*, babi:babi_id(kode_babi)').eq('user_email', userEmail).not('tanggal_berikutnya', 'is', null).gte('tanggal_berikutnya', today).order('tanggal_berikutnya').limit(1),
-      supabase.from('sanitasi').select('*, kandang:kandang_id(nama_kandang)').eq('user_email', userEmail).not('tanggal_berikutnya', 'is', null).gte('tanggal_berikutnya', today).order('tanggal_berikutnya').limit(1),
-      supabase.from('reproduksi').select('*, babi_betina:babi_betina_id(kode_babi)').eq('user_email', userEmail).eq('status_bunting', true).is('tanggal_melahirkan', null).not('estimasi_lahir', 'is', null).gte('estimasi_lahir', today).order('estimasi_lahir').limit(1)
-    ]);
-
-    const nearestVaccine = vaksinRes.data?.[0];
-    const nearestSanitation = sanitasiRes.data?.[0];
-    const nearestBirth = lahirRes.data?.[0];
-
-    setSummary({
-      population: babiRes.count || 0,
-      nearestVaccine: nearestVaccine
-        ? `${new Date(nearestVaccine.tanggal_berikutnya).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} · ${nearestVaccine.babi?.kode_babi || 'Massal'}`
-        : 'Belum ada jadwal',
-      nearestBirth: nearestBirth
-        ? `${new Date(nearestBirth.estimasi_lahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} · ${nearestBirth.babi_betina?.kode_babi || 'Indukan'}`
-        : 'Belum ada jadwal',
-      sanitationStatus: nearestSanitation
-        ? new Date(nearestSanitation.tanggal_berikutnya).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
-        : 'Belum ada jadwal',
-      sanitationDetail: nearestSanitation
-        ? `${nearestSanitation.kandang?.nama_kandang || 'Kandang'} · ${nearestSanitation.jenis_disinfektan || 'Sanitasi terdekat'}`
-        : 'Belum ada jadwal',
-    });
-
-    const formattedReminders: any[] = [];
-    
-    if (vaksinRes.data) {
-      vaksinRes.data.forEach((v: any) => {
-        formattedReminders.push({
-          id: `v-${v.id}`,
-          title: `Vaksin ${v.jenis_vaksin} - ${v.babi?.kode_babi || 'Massal'}`,
-          time: v.tanggal_berikutnya === today ? 'Hari ini' : new Date(v.tanggal_berikutnya).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'}),
-          dateObj: new Date(v.tanggal_berikutnya),
-          type: 'vaccine',
-          icon: Syringe,
-          color: 'text-blue-500',
-          bg: 'bg-blue-500/10'
-        });
-      });
-    }
-
-    if (sanitasiRes.data) {
-      sanitasiRes.data.forEach((s: any) => {
-        formattedReminders.push({
-          id: `s-${s.id}`,
-          title: `Sanitasi ${s.kandang?.nama_kandang || 'Kandang'}`,
-          time: s.tanggal_berikutnya === today ? 'Hari ini' : new Date(s.tanggal_berikutnya).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'}),
-          dateObj: new Date(s.tanggal_berikutnya),
-          type: 'sanitation',
-          icon: SprayCan,
-          color: 'text-emerald-500',
-          bg: 'bg-emerald-500/10'
-        });
-      });
-    }
-
-    if (lahirRes.data) {
-      lahirRes.data.forEach((l: any) => {
-        formattedReminders.push({
-          id: `l-${l.id}`,
-          title: `Estimasi Lahir: ${l.babi_betina?.kode_babi}`,
-          time: l.estimasi_lahir === today ? 'Hari ini' : new Date(l.estimasi_lahir).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'}),
-          dateObj: new Date(l.estimasi_lahir),
-          type: 'birth',
-          icon: Baby,
-          color: 'text-pink-500',
-          bg: 'bg-pink-500/10'
-        });
-      });
-    }
-
-    formattedReminders.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
-    
-    setRemindersList(formattedReminders.slice(0, 5));
-    setLoading(false);
   };
 
   const stats = [

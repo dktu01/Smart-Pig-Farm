@@ -32,93 +32,112 @@ export default function JadwalPage() {
 
   const fetchJadwal = async () => {
     setLoading(true);
-    
-    const [vaksinRes, sanitasiRes, lahirRes] = await Promise.all([
-      supabase.from('vaksinasi').select('*, babi:babi_id(kode_babi)').not('tanggal_berikutnya', 'is', null),
-      supabase.from('sanitasi').select('*, kandang:kandang_id(nama_kandang)').not('tanggal_berikutnya', 'is', null),
-      supabase.from('reproduksi').select('*, babi_betina:babi_betina_id(kode_babi)').eq('status_bunting', true).is('tanggal_melahirkan', null).not('estimasi_lahir', 'is', null)
-    ]);
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      const userEmail = user?.email;
 
-    const combined: JadwalItem[] = [];
+      if (!userEmail) {
+        setJadwal([]);
+        return;
+      }
 
-    if (vaksinRes.data) {
-      vaksinRes.data.forEach((v: any) => {
-        combined.push({
-          id: `v-${v.id}`,
-          tanggal: v.tanggal_berikutnya,
-          kegiatan: 'Vaksin',
-          objek: v.babi?.kode_babi || 'Massal',
-          status: 'Menunggu',
-          icon: Syringe,
-          color: 'text-blue-500',
-          bg: 'bg-blue-500/10',
-          dateObj: new Date(v.tanggal_berikutnya),
-          rawId: v.id
+      const [vaksinRes, sanitasiRes, lahirRes] = await Promise.all([
+        supabase.from('vaksinasi').select('*, babi:babi_id(kode_babi)').eq('user_email', userEmail).not('tanggal_berikutnya', 'is', null),
+        supabase.from('sanitasi').select('*, kandang:kandang_id(nama_kandang)').eq('user_email', userEmail).not('tanggal_berikutnya', 'is', null),
+        supabase.from('reproduksi').select('*, babi_betina:babi_betina_id(kode_babi)').eq('user_email', userEmail).eq('status_bunting', true).is('tanggal_melahirkan', null).not('estimasi_lahir', 'is', null)
+      ]);
+
+      if (vaksinRes.error) throw vaksinRes.error;
+      if (sanitasiRes.error) throw sanitasiRes.error;
+      if (lahirRes.error) throw lahirRes.error;
+
+      const combined: JadwalItem[] = [];
+
+      if (vaksinRes.data) {
+        vaksinRes.data.forEach((v: any) => {
+          combined.push({
+            id: `v-${v.id}`,
+            tanggal: v.tanggal_berikutnya,
+            kegiatan: 'Vaksin',
+            objek: v.babi?.kode_babi || 'Massal',
+            status: 'Menunggu',
+            icon: Syringe,
+            color: 'text-blue-500',
+            bg: 'bg-blue-500/10',
+            dateObj: new Date(v.tanggal_berikutnya),
+            rawId: v.id
+          });
         });
-      });
-    }
+      }
 
-    if (sanitasiRes.data) {
-      sanitasiRes.data.forEach((s: any) => {
-        combined.push({
-          id: `s-${s.id}`,
-          tanggal: s.tanggal_berikutnya,
-          kegiatan: 'Sanitasi',
-          objek: s.kandang?.nama_kandang || 'Kandang',
-          status: 'Menunggu',
-          icon: SprayCan,
-          color: 'text-emerald-500',
-          bg: 'bg-emerald-500/10',
-          dateObj: new Date(s.tanggal_berikutnya),
-          rawId: s.id
+      if (sanitasiRes.data) {
+        sanitasiRes.data.forEach((s: any) => {
+          combined.push({
+            id: `s-${s.id}`,
+            tanggal: s.tanggal_berikutnya,
+            kegiatan: 'Sanitasi',
+            objek: s.kandang?.nama_kandang || 'Kandang',
+            status: 'Menunggu',
+            icon: SprayCan,
+            color: 'text-emerald-500',
+            bg: 'bg-emerald-500/10',
+            dateObj: new Date(s.tanggal_berikutnya),
+            rawId: s.id
+          });
         });
-      });
-    }
+      }
 
-    if (lahirRes.data) {
-      lahirRes.data.forEach((l: any) => {
-        combined.push({
-          id: `l-${l.id}`,
-          tanggal: l.estimasi_lahir,
-          kegiatan: 'Kelahiran',
-          objek: l.babi_betina?.kode_babi || 'Indukan',
-          status: 'Menunggu',
-          icon: Baby,
-          color: 'text-pink-500',
-          bg: 'bg-pink-500/10',
-          dateObj: new Date(l.estimasi_lahir),
-          rawId: l.id
+      if (lahirRes.data) {
+        lahirRes.data.forEach((l: any) => {
+          combined.push({
+            id: `l-${l.id}`,
+            tanggal: l.estimasi_lahir,
+            kegiatan: 'Kelahiran',
+            objek: l.babi_betina?.kode_babi || 'Indukan',
+            status: 'Menunggu',
+            icon: Baby,
+            color: 'text-pink-500',
+            bg: 'bg-pink-500/10',
+            dateObj: new Date(l.estimasi_lahir),
+            rawId: l.id
+          });
         });
-      });
-    }
+      }
 
-    combined.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
-    setJadwal(combined);
-    setLoading(false);
+      combined.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+      setJadwal(combined);
+    } catch (error: any) {
+      console.error('Error fetching jadwal:', error);
+      alert('Gagal memuat jadwal: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleMarkDone = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedJadwal) return;
 
-    let error = null;
+    try {
+      let error = null;
 
-    if (selectedJadwal.kegiatan === 'Vaksin') {
-      const res = await supabase.from('vaksinasi').update({ tanggal_berikutnya: null, catatan: `Selesai pada: ${actualDate}` }).eq('id', selectedJadwal.rawId);
-      error = res.error;
-    } else if (selectedJadwal.kegiatan === 'Sanitasi') {
-      const res = await supabase.from('sanitasi').update({ tanggal_berikutnya: null }).eq('id', selectedJadwal.rawId);
-      error = res.error;
-    } else if (selectedJadwal.kegiatan === 'Kelahiran') {
-      const res = await supabase.from('reproduksi').update({ estimasi_lahir: null, tanggal_melahirkan: actualDate }).eq('id', selectedJadwal.rawId);
-      error = res.error;
-    }
+      if (selectedJadwal.kegiatan === 'Vaksin') {
+        const res = await supabase.from('vaksinasi').update({ tanggal_berikutnya: null, catatan: `Selesai pada: ${actualDate}` }).eq('id', selectedJadwal.rawId);
+        error = res.error;
+      } else if (selectedJadwal.kegiatan === 'Sanitasi') {
+        const res = await supabase.from('sanitasi').update({ tanggal_berikutnya: null }).eq('id', selectedJadwal.rawId);
+        error = res.error;
+      } else if (selectedJadwal.kegiatan === 'Kelahiran') {
+        const res = await supabase.from('reproduksi').update({ estimasi_lahir: null, tanggal_melahirkan: actualDate }).eq('id', selectedJadwal.rawId);
+        error = res.error;
+      }
 
-    if (error) {
-      alert('Gagal menandai selesai: ' + error.message);
-    } else {
+      if (error) throw error;
       setJadwal(jadwal.filter(j => j.id !== selectedJadwal.id));
       setIsMarkModalOpen(false);
+    } catch (error: any) {
+      alert('Gagal menandai selesai: ' + error.message);
     }
   };
 
