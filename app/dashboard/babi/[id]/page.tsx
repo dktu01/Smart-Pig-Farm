@@ -293,13 +293,13 @@ export default function DetailBabiPage() {
           <Activity className="w-4 h-4" />
           Catat Medis
         </button>
-        <button
-          onClick={() => setIsVakModalOpen(true)}
-          className="flex-1 flex items-center justify-center gap-2 py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm shadow-sm active:scale-95 transition-transform"
-        >
-          <Syringe className="w-4 h-4" />
-          Vaksin
-        </button>
+          <button
+            onClick={() => setIsVakModalOpen(true)}
+            className="flex-1 flex items-center justify-center gap-2 py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm shadow-sm active:scale-95 transition-transform"
+          >
+            <Syringe className="w-4 h-4" />
+            Input Vaksin
+          </button>
         {babi.jenis_kelamin === 'Betina' && (
           <button
             onClick={() => setIsRepModalOpen(true)}
