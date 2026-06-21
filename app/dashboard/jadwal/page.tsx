@@ -35,17 +35,17 @@ export default function JadwalPage() {
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
-      const userEmail = user?.email;
+      const userId = user?.id;
 
-      if (!userEmail) {
+      if (!userId) {
         setJadwal([]);
         return;
       }
 
       const [vaksinRes, sanitasiRes, lahirRes] = await Promise.all([
-        supabase.from('vaksinasi').select('*, babi:babi_id(kode_babi)').eq('user_email', userEmail).not('tanggal_berikutnya', 'is', null),
-        supabase.from('sanitasi').select('*, kandang:kandang_id(nama_kandang)').eq('user_email', userEmail).not('tanggal_berikutnya', 'is', null),
-        supabase.from('reproduksi').select('*, babi_betina:babi_betina_id(kode_babi)').eq('user_email', userEmail).eq('status_bunting', true).is('tanggal_melahirkan', null).not('estimasi_lahir', 'is', null)
+        supabase.from('vaksinasi').select('*, babi:babi_id(kode_babi)').eq('user_id', userId).not('tanggal_berikutnya', 'is', null),
+        supabase.from('sanitasi').select('*, kandang:kandang_id(nama_kandang)').eq('user_id', userId).not('tanggal_berikutnya', 'is', null),
+        supabase.from('reproduksi').select('*, babi_betina:babi_betina_id(kode_babi)').eq('user_id', userId).eq('status_bunting', true).is('tanggal_melahirkan', null).not('estimasi_lahir', 'is', null)
       ]);
 
       if (vaksinRes.error) throw vaksinRes.error;

@@ -29,9 +29,9 @@ export default function DetailKandangPage() {
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
-      const userEmail = user?.email;
+      const userId = user?.id;
 
-      if (!userEmail) {
+      if (!userId) {
         setKandang(null);
         setBabiList([]);
         setSanitasiList([]);
@@ -43,7 +43,7 @@ export default function DetailKandangPage() {
         .from('kandang')
         .select('*')
         .eq('id', id)
-        .eq('user_email', userEmail)
+        .eq('user_id', userId)
         .single();
         
       if (kandangErr) throw kandangErr;
@@ -54,7 +54,7 @@ export default function DetailKandangPage() {
         .from('babi')
         .select('*')
         .eq('kandang_id', id)
-        .eq('user_email', userEmail)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false });
         
       if (babiErr) throw babiErr;
@@ -65,7 +65,7 @@ export default function DetailKandangPage() {
         .from('sanitasi')
         .select('*')
         .eq('kandang_id', id)
-        .eq('user_email', userEmail)
+        .eq('user_id', userId)
         .order('tanggal_semprot', { ascending: false });
 
       if (sanErr) throw sanErr;
@@ -83,9 +83,9 @@ export default function DetailKandangPage() {
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
-      const userEmail = user?.email;
+      const userId = user?.id;
 
-      if (!userEmail) {
+      if (!userId) {
         alert('Session login tidak ditemukan. Silakan login ulang.');
         return;
       }
@@ -94,7 +94,7 @@ export default function DetailKandangPage() {
         tanggal_semprot: sanitasiForm.tanggal_semprot,
         jenis_disinfektan: sanitasiForm.jenis_disinfektan,
         tanggal_berikutnya: sanitasiForm.tanggal_berikutnya || null,
-        user_email: userEmail
+        user_id: userId
       }]).select();
 
       if (error) throw error;

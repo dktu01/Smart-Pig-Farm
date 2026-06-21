@@ -12,7 +12,7 @@ type Kandang = {
   jenis_kandang: string;
   kapasitas: number;
   qr_code_url: string | null;
-  user_email?: string | null;
+  user_id?: string | null;
   created_at: string;
   babi?: { id: string }[];
 };
@@ -48,9 +48,9 @@ export default function KandangPage() {
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
-      const userEmail = user?.email;
+      const userId = user?.id;
 
-      if (!userEmail) {
+      if (!userId) {
         setKandangList([]);
         return;
       }
@@ -58,7 +58,7 @@ export default function KandangPage() {
       const { data, error } = await supabase
         .from('kandang')
         .select('*, babi(id)')
-        .eq('user_email', userEmail)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -77,9 +77,9 @@ export default function KandangPage() {
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
-      const userEmail = user?.email;
+      const userId = user?.id;
 
-      if (!userEmail) {
+      if (!userId) {
         alert('Session login tidak ditemukan. Silakan login ulang.');
         return;
       }
@@ -94,7 +94,7 @@ export default function KandangPage() {
             kapasitas: formData.kapasitas
           })
           .eq('id', selectedKandang.id)
-          .eq('user_email', userEmail)
+          .eq('user_id', userId)
           .select();
 
         if (error) throw error;
@@ -118,7 +118,7 @@ export default function KandangPage() {
               nama_kandang: formData.nama_kandang, 
               jenis_kandang: formData.jenis_kandang,
               kapasitas: formData.kapasitas,
-              user_email: userEmail
+              user_id: userId
             }
           ])
           .select();
@@ -154,13 +154,13 @@ export default function KandangPage() {
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
-      const userEmail = user?.email;
+      const userId = user?.id;
       
       const { error } = await supabase
         .from('kandang')
         .delete()
         .eq('id', id)
-        .eq('user_email', userEmail ?? '');
+        .eq('user_id', userId ?? '');
 
       if (error) throw error;
       setKandangList(kandangList.filter(k => k.id !== id));

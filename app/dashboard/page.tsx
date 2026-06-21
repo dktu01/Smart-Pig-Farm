@@ -38,9 +38,9 @@ export default function DashboardPage() {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
       
-      const userEmail = user?.email;
+      const userId = user?.id;
 
-      if (!userEmail) {
+      if (!userId) {
         setSummary({
           population: 0,
           nearestVaccine: 'Belum ada jadwal',
@@ -58,10 +58,10 @@ export default function DashboardPage() {
         sanitasiRes,
         lahirRes
       ] = await Promise.all([
-        supabase.from('babi').select('*', { count: 'exact', head: true }).eq('user_email', userEmail),
-        supabase.from('vaksinasi').select('*, babi:babi_id(kode_babi)').eq('user_email', userEmail).not('tanggal_berikutnya', 'is', null).gte('tanggal_berikutnya', today).order('tanggal_berikutnya').limit(1),
-        supabase.from('sanitasi').select('*, kandang:kandang_id(nama_kandang)').eq('user_email', userEmail).not('tanggal_berikutnya', 'is', null).gte('tanggal_berikutnya', today).order('tanggal_berikutnya').limit(1),
-        supabase.from('reproduksi').select('*, babi_betina:babi_betina_id(kode_babi)').eq('user_email', userEmail).eq('status_bunting', true).is('tanggal_melahirkan', null).not('estimasi_lahir', 'is', null).gte('estimasi_lahir', today).order('estimasi_lahir').limit(1)
+        supabase.from('babi').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+        supabase.from('vaksinasi').select('*, babi:babi_id(kode_babi)').eq('user_id', userId).not('tanggal_berikutnya', 'is', null).gte('tanggal_berikutnya', today).order('tanggal_berikutnya').limit(1),
+        supabase.from('sanitasi').select('*, kandang:kandang_id(nama_kandang)').eq('user_id', userId).not('tanggal_berikutnya', 'is', null).gte('tanggal_berikutnya', today).order('tanggal_berikutnya').limit(1),
+        supabase.from('reproduksi').select('*, babi_betina:babi_betina_id(kode_babi)').eq('user_id', userId).eq('status_bunting', true).is('tanggal_melahirkan', null).not('estimasi_lahir', 'is', null).gte('estimasi_lahir', today).order('estimasi_lahir').limit(1)
       ]);
 
       if (babiRes.error) throw babiRes.error;

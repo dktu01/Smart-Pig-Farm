@@ -24,9 +24,6 @@ ALTER TABLE public.vaksinasi
 ALTER TABLE public.reproduksi
   ADD COLUMN IF NOT EXISTS user_email TEXT;
 
--- Tambah user_email ke tabel kesehatan (jika belum ada)
-ALTER TABLE public.kesehatan
-  ADD COLUMN IF NOT EXISTS user_email TEXT;
 
 -- ================================================================
 -- Buat atau perbarui RLS Policy agar Multi-tenant bekerja benar
@@ -62,8 +59,3 @@ CREATE POLICY "Tenant access reproduksi" ON public.reproduksi FOR ALL
   USING (user_email = coalesce(auth.jwt() ->> 'email', ''))
   WITH CHECK (user_email = coalesce(auth.jwt() ->> 'email', ''));
 
--- Drop dan buat ulang policy kesehatan
-DROP POLICY IF EXISTS "Tenant access kesehatan" ON public.kesehatan;
-CREATE POLICY "Tenant access kesehatan" ON public.kesehatan FOR ALL
-  USING (user_email = coalesce(auth.jwt() ->> 'email', ''))
-  WITH CHECK (user_email = coalesce(auth.jwt() ->> 'email', ''));

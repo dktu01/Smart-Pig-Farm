@@ -35,9 +35,9 @@ export default function DetailBabiPage() {
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
-      const userEmail = user?.email;
+      const userId = user?.id;
 
-      if (!userEmail) {
+      if (!userId) {
         setBabi(null);
         setVaksinasi([]);
         setReproduksi([]);
@@ -49,7 +49,7 @@ export default function DetailBabiPage() {
         .from('babi')
         .select('*, kandang:kandang_id(nama_kandang)')
         .eq('id', id)
-        .eq('user_email', userEmail)
+        .eq('user_id', userId)
         .single();
         
       if (babiErr) throw babiErr;
@@ -60,7 +60,7 @@ export default function DetailBabiPage() {
         .from('vaksinasi')
         .select('*')
         .eq('babi_id', id)
-        .eq('user_email', userEmail)
+        .eq('user_id', userId)
         .order('tanggal_vaksin', { ascending: false });
       if (vakErr) throw vakErr;
       if (vakData) setVaksinasi(vakData);
@@ -71,7 +71,7 @@ export default function DetailBabiPage() {
           .from('reproduksi')
           .select('*, jantan:babi_jantan_id(kode_babi)')
           .eq('babi_betina_id', id)
-          .eq('user_email', userEmail)
+          .eq('user_id', userId)
           .order('tanggal_kawin', { ascending: false });
         if (repErr) throw repErr;
         if (repData) setReproduksi(repData);
@@ -89,9 +89,9 @@ export default function DetailBabiPage() {
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
-      const userEmail = user?.email;
+      const userId = user?.id;
 
-      if (!userEmail) {
+      if (!userId) {
         alert('Session login tidak ditemukan. Silakan login ulang.');
         return;
       }
@@ -101,7 +101,7 @@ export default function DetailBabiPage() {
         tanggal_vaksin: vakForm.tanggal_vaksin,
         tanggal_berikutnya: vakForm.tanggal_berikutnya || null,
         catatan: vakForm.catatan,
-        user_email: userEmail
+        user_id: userId
       }]).select();
 
       if (error) throw error;
@@ -120,9 +120,9 @@ export default function DetailBabiPage() {
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
-      const userEmail = user?.email;
+      const userId = user?.id;
 
-      if (!userEmail) {
+      if (!userId) {
         alert('Session login tidak ditemukan. Silakan login ulang.');
         return;
       }
@@ -131,7 +131,7 @@ export default function DetailBabiPage() {
         .from('babi')
         .select('id')
         .eq('kode_babi', repForm.babi_jantan_kode)
-        .eq('user_email', userEmail)
+        .eq('user_id', userId)
         .single();
       
       const { data, error } = await supabase.from('reproduksi').insert([{
@@ -140,7 +140,7 @@ export default function DetailBabiPage() {
         tanggal_kawin: repForm.tanggal_kawin,
         status_bunting: repForm.status_bunting,
         estimasi_lahir: repForm.estimasi_lahir || null,
-        user_email: userEmail
+        user_id: userId
       }]).select('*, jantan:babi_jantan_id(kode_babi)');
 
       if (error) throw error;
@@ -148,7 +148,7 @@ export default function DetailBabiPage() {
         setReproduksi([data[0], ...reproduksi]);
         setIsRepModalOpen(false);
         setRepForm({ babi_jantan_kode: '', tanggal_kawin: new Date().toISOString().split('T')[0], status_bunting: false, estimasi_lahir: '' });
-        await supabase.from('babi').update({ status_reproduksi: repForm.status_bunting ? 'Bunting' : 'Sudah Kawin' }).eq('id', id).eq('user_email', userEmail);
+        await supabase.from('babi').update({ status_reproduksi: repForm.status_bunting ? 'Bunting' : 'Sudah Kawin' }).eq('id', id).eq('user_id', userId);
         setBabi({...babi, status_reproduksi: repForm.status_bunting ? 'Bunting' : 'Sudah Kawin'});
       }
     } catch (error: any) {
