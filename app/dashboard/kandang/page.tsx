@@ -340,9 +340,9 @@ export default function KandangPage() {
 
       {/* QR Code Print Modal */}
       {isQRModalOpen && selectedKandang && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-background/90 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-background/90 backdrop-blur-sm overflow-y-auto max-h-[90vh]">
           {/* Only this section will be printed clearly using standard CSS media queries defined in globals.css if needed, but we'll use a simple approach */}
-          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden print:shadow-none print:w-full print:max-w-none print:h-screen print:flex print:flex-col print:justify-center print:items-center print:bg-white text-black">
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden print:shadow-none print:w-full print:max-w-none print:h-screen print:flex print:flex-col print:justify-center print:items-center print:bg-white text-black max-h-[90vh] overflow-y-auto">
             
             <div className="flex items-center justify-between p-4 border-b border-gray-200 print:hidden bg-gray-50">
               <h2 className="text-lg font-semibold text-gray-900">QR Code Kandang</h2>
@@ -372,6 +372,7 @@ export default function KandangPage() {
 
               <div className="space-y-1 text-gray-600 mb-2">
                 <p>Kapasitas: <strong>{selectedKandang.kapasitas} Ekor</strong></p>
+                <p className="text-sm text-gray-500 break-all">{qrOrigin}/dashboard/kandang/{selectedKandang.id}</p>
                 <p className="text-xs mt-4 text-gray-400">Scan untuk melihat data & histori kesehatan babi.</p>
               </div>
             </div>

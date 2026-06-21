@@ -1,96 +1,97 @@
-import React from 'react';
+import Link from 'next/link';
 
 export default function Home() {
+  const logoSrc = '/assets/logo-placeholder.svg';
+
   return (
-    <main className="flex min-h-screen flex-col items-center p-6 lg:p-24 bg-gradient-to-br from-background to-secondary">
-      <div className="z-10 max-w-5xl w-full flex items-center justify-between font-mono text-sm">
-        <p className="flex justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit w-auto rounded-xl border bg-gray-200 p-4 dark:bg-zinc-800/30 shadow-sm">
-          Welcome to&nbsp;
-          <code className="font-mono font-bold text-primary">Smart Pig Farm</code>
-        </p>
-        <div>
-          <a
-            href="/login"
-            className="px-6 py-3 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors shadow-md flex items-center gap-2"
-          >
-            Sign In
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </a>
-        </div>
-      </div>
+    <main className="min-h-screen bg-[#FAF9F7] text-[#14532D] relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(20,83,45,0.10),_transparent_38%),radial-gradient(circle_at_bottom_right,_rgba(234,88,12,0.10),_transparent_30%)]" />
+      <div className="relative mx-auto flex min-h-screen max-w-7xl flex-col px-6 py-6 lg:px-10">
+        <header className="flex items-center justify-between gap-4 rounded-3xl border border-[#14532D]/10 bg-white/80 px-5 py-4 shadow-sm backdrop-blur">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#14532D] text-white shadow-lg shadow-[#14532D]/20">
+              <img src={logoSrc} alt="Smart Pig Farm logo placeholder" className="h-7 w-7 object-contain" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#EA580C]">Smart Pig Farm</p>
+              <h1 className="text-lg font-semibold text-[#14532D]">Welcome</h1>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link href="/login" className="rounded-full border border-[#14532D]/15 px-4 py-2 text-sm font-semibold text-[#14532D] transition-colors hover:bg-[#14532D]/5">
+              Login
+            </Link>
+            <Link href="/register" className="rounded-full bg-[#EA580C] px-4 py-2 text-sm font-semibold text-white shadow-md shadow-[#EA580C]/20 transition-colors hover:bg-[#c84f0a]">
+              Register
+            </Link>
+          </div>
+        </header>
 
-      <div className="relative flex place-items-center mt-20 md:mt-32">
-        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-pink-400">
-          Digital Farm Management
-        </h1>
-      </div>
-      
-      <p className="mt-6 text-lg md:text-xl text-muted-foreground text-center max-w-2xl">
-        Monitor health, reproduction, vaccination, and farm activity digitally in realtime.
-      </p>
+        <section className="grid flex-1 items-center gap-12 py-10 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="space-y-8">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#14532D]/10 bg-white/80 px-4 py-2 text-sm font-medium text-[#14532D] shadow-sm backdrop-blur">
+              <span className="h-2 w-2 rounded-full bg-[#EA580C]" />
+              Warm Cream UI for academic presentation
+            </div>
 
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left mt-16 gap-4">
-        <a
-          href="#"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Home{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Realtime monitoring of your entire pig farm operations.
-          </p>
-        </a>
+            <div className="space-y-5 max-w-2xl">
+              <h2 className="text-5xl font-black tracking-tight text-[#14532D] md:text-7xl">
+                Smart Pig Farm
+              </h2>
+              <p className="max-w-xl text-lg leading-8 text-[#14532D]/75 md:text-xl">
+                Sistem manajemen peternakan yang fokus, rapi, dan mudah dipresentasikan: reproduksi, vaksinasi, QRCode, sanitasi, serta jadwal yang terstruktur.
+              </p>
+            </div>
 
-        <a
-          href="#"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Health{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Track diseases, medicines, and vaccination schedules.
-          </p>
-        </a>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link href="/login" className="inline-flex items-center justify-center rounded-full bg-[#14532D] px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#14532D]/15 transition-transform hover:-translate-y-0.5 active:scale-95">
+                Login ke Dashboard
+              </Link>
+              <Link href="/register" className="inline-flex items-center justify-center rounded-full border border-[#14532D]/15 bg-white px-6 py-3.5 text-sm font-semibold text-[#14532D] shadow-sm transition-transform hover:-translate-y-0.5 active:scale-95">
+                Buat Akun
+              </Link>
+            </div>
 
-        <a
-          href="#"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Reproduction{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Manage breeding, pregnancy, and birth estimation.
-          </p>
-        </a>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[
+                'Reproduksi',
+                'Vaksinasi & Jadwal',
+                'QR Identity',
+              ].map((item) => (
+                <div key={item} className="rounded-2xl border border-[#14532D]/10 bg-white/85 p-4 shadow-sm backdrop-blur">
+                  <p className="text-sm font-semibold text-[#14532D]">{item}</p>
+                  <p className="mt-1 text-xs leading-5 text-[#14532D]/65">Ringkas, jelas, dan cocok untuk demonstrasi sidang.</p>
+                </div>
+              ))}
+            </div>
+          </div>
 
-        <a
-          href="#"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            QR Scan{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Quick access to farm data through integrated QR code system.
-          </p>
-        </a>
+          <div className="relative">
+            <div className="absolute -left-6 top-8 h-24 w-24 rounded-full bg-[#EA580C]/20 blur-2xl" />
+            <div className="absolute -right-4 bottom-10 h-28 w-28 rounded-full bg-[#14532D]/15 blur-2xl" />
+            <div className="relative overflow-hidden rounded-[2rem] border border-[#14532D]/10 bg-white/90 p-6 shadow-2xl shadow-[#14532D]/10 backdrop-blur">
+              <div className="rounded-3xl bg-[#14532D] px-5 py-4 text-white shadow-inner">
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/70">Preview</p>
+                <p className="mt-2 text-2xl font-bold">Dashboard Overview</p>
+                <p className="mt-2 max-w-sm text-sm leading-6 text-white/75">Ruang kerja yang tenang untuk melihat agenda utama farm tanpa distraksi visual yang berat.</p>
+              </div>
+
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                {[
+                  { label: 'Populasi', value: 'Realtime' },
+                  { label: 'Sanitasi', value: 'Terjadwal' },
+                  { label: 'Vaksin', value: 'Terkontrol' },
+                  { label: 'Reproduksi', value: 'Terpantau' },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-2xl border border-[#14532D]/10 bg-[#FAF9F7] p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#EA580C]">{item.label}</p>
+                    <p className="mt-2 text-lg font-bold text-[#14532D]">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
     </main>
   );

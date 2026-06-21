@@ -25,6 +25,7 @@ export default function RegisterPage() {
       options: {
         data: {
           full_name: name,
+          name,
         }
       }
     });
@@ -32,7 +33,9 @@ export default function RegisterPage() {
     if (error) {
       setError(error.message);
     } else {
-      router.replace('/dashboard');
+      await supabase.auth.signOut();
+      window.alert('Register berhasil, silakan login');
+      router.replace('/login');
     }
     setLoading(false);
   };
@@ -48,8 +51,8 @@ export default function RegisterPage() {
           </div>
           
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-foreground">Create an Account</h2>
-            <p className="text-sm text-muted-foreground mt-2">Join Smart Pig Farm today</p>
+            <h2 className="text-2xl font-bold text-foreground">Register</h2>
+            <p className="text-sm text-muted-foreground mt-2">Buat akun untuk mengakses dashboard farm</p>
           </div>
 
           {error && (
@@ -60,7 +63,7 @@ export default function RegisterPage() {
 
           <form onSubmit={handleRegister} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Full Name</label>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Nama</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <User className="h-4 w-4 text-muted-foreground" />
@@ -71,13 +74,13 @@ export default function RegisterPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="block w-full pl-10 pr-3 py-2.5 bg-background border border-input rounded-lg text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors sm:text-sm"
-                  placeholder="John Doe"
+                  placeholder="Nama lengkap"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Email Address</label>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Email</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Mail className="h-4 w-4 text-muted-foreground" />
@@ -88,7 +91,7 @@ export default function RegisterPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="block w-full pl-10 pr-3 py-2.5 bg-background border border-input rounded-lg text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors sm:text-sm"
-                  placeholder="owner@smartpigfarm.com"
+                  placeholder="nama@smartpigfarm.com"
                 />
               </div>
             </div>
@@ -117,13 +120,13 @@ export default function RegisterPage() {
               disabled={loading}
               className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all disabled:opacity-70 disabled:cursor-not-allowed mt-6"
             >
-              {loading ? 'Creating account...' : 'Sign up'}
+              {loading ? 'Memproses...' : 'Register'}
             </button>
             
             <p className="text-center text-sm text-muted-foreground mt-4">
-              Already have an account?{' '}
+              Sudah punya akun?{' '}
               <a href="/login" className="font-medium text-primary hover:text-primary/80 transition-colors">
-                Sign in
+                Login
               </a>
             </p>
           </form>

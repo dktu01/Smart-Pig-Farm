@@ -6,22 +6,23 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   PiggyBank, 
-  Home, 
-  Activity, 
   Syringe, 
   SprayCan, 
   Baby,
   Bell,
-  CheckCircle2
+  Home,
+  CalendarClock,
+  Droplets
 } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [statsData, setStatsData] = useState({
-    totalBabi: 0,
-    totalKandang: 0,
-    healthyPigs: 0,
-    sickPigs: 0,
+  const [summary, setSummary] = useState({
+    population: 0,
+    nearestVaccine: 'Belum ada jadwal',
+    nearestBirth: 'Belum ada jadwal',
+    sanitationStatus: 'Belum ada jadwal',
+    sanitationDetail: 'Belum ada jadwal',
   });
   
   const [remindersList, setRemindersList] = useState<any[]>([]);
@@ -35,30 +36,36 @@ export default function DashboardPage() {
     setLoading(true);
     const today = new Date().toISOString().split('T')[0];
     
-    // Fetch counts and upcoming events concurrently
     const [
       babiRes,
-      kandangRes,
-      healthyRes,
-      sickRes,
       vaksinRes,
       sanitasiRes,
       lahirRes
     ] = await Promise.all([
       supabase.from('babi').select('*', { count: 'exact', head: true }),
-      supabase.from('kandang').select('*', { count: 'exact', head: true }),
-      supabase.from('babi').select('*', { count: 'exact', head: true }).eq('status_kesehatan', 'Sehat'),
-      supabase.from('babi').select('*', { count: 'exact', head: true }).neq('status_kesehatan', 'Sehat'),
-      supabase.from('vaksinasi').select('*, babi:babi_id(kode_babi)').not('tanggal_berikutnya', 'is', null).gte('tanggal_berikutnya', today).order('tanggal_berikutnya').limit(5),
-      supabase.from('sanitasi').select('*, kandang:kandang_id(nama_kandang)').not('tanggal_berikutnya', 'is', null).gte('tanggal_berikutnya', today).order('tanggal_berikutnya').limit(5),
-      supabase.from('reproduksi').select('*, babi_betina:babi_betina_id(kode_babi)').eq('status_bunting', true).is('tanggal_melahirkan', null).not('estimasi_lahir', 'is', null).gte('estimasi_lahir', today).order('estimasi_lahir').limit(5)
+      supabase.from('vaksinasi').select('*, babi:babi_id(kode_babi)').not('tanggal_berikutnya', 'is', null).gte('tanggal_berikutnya', today).order('tanggal_berikutnya').limit(1),
+      supabase.from('sanitasi').select('*, kandang:kandang_id(nama_kandang)').not('tanggal_berikutnya', 'is', null).gte('tanggal_berikutnya', today).order('tanggal_berikutnya').limit(1),
+      supabase.from('reproduksi').select('*, babi_betina:babi_betina_id(kode_babi)').eq('status_bunting', true).is('tanggal_melahirkan', null).not('estimasi_lahir', 'is', null).gte('estimasi_lahir', today).order('estimasi_lahir').limit(1)
     ]);
 
-    setStatsData({
-      totalBabi: babiRes.count || 0,
-      totalKandang: kandangRes.count || 0,
-      healthyPigs: healthyRes.count || 0,
-      sickPigs: sickRes.count || 0,
+    const nearestVaccine = vaksinRes.data?.[0];
+    const nearestSanitation = sanitasiRes.data?.[0];
+    const nearestBirth = lahirRes.data?.[0];
+
+    setSummary({
+      population: babiRes.count || 0,
+      nearestVaccine: nearestVaccine
+        ? `${new Date(nearestVaccine.tanggal_berikutnya).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} · ${nearestVaccine.babi?.kode_babi || 'Massal'}`
+        : 'Belum ada jadwal',
+      nearestBirth: nearestBirth
+        ? `${new Date(nearestBirth.estimasi_lahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} · ${nearestBirth.babi_betina?.kode_babi || 'Indukan'}`
+        : 'Belum ada jadwal',
+      sanitationStatus: nearestSanitation
+        ? new Date(nearestSanitation.tanggal_berikutnya).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
+        : 'Belum ada jadwal',
+      sanitationDetail: nearestSanitation
+        ? `${nearestSanitation.kandang?.nama_kandang || 'Kandang'} · ${nearestSanitation.jenis_disinfektan || 'Sanitasi terdekat'}`
+        : 'Belum ada jadwal',
     });
 
     const formattedReminders: any[] = [];
@@ -115,18 +122,18 @@ export default function DashboardPage() {
   };
 
   const stats = [
-    { name: 'Total Babi', value: loading ? '...' : statsData.totalBabi, icon: PiggyBank, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    { name: 'Total Kandang', value: loading ? '...' : statsData.totalKandang, icon: Home, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-    { name: 'Babi Sehat', value: loading ? '...' : statsData.healthyPigs, icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-    { name: 'Babi Sakit', value: loading ? '...' : statsData.sickPigs, icon: Activity, color: 'text-destructive', bg: 'bg-destructive/10' },
+    { name: 'Populasi', value: loading ? '...' : summary.population, icon: PiggyBank, color: 'text-[#14532D]', bg: 'bg-[#14532D]/10', hint: 'Total babi aktif' },
+    { name: 'Jadwal Vaksin Terdekat', value: loading ? '...' : summary.nearestVaccine, icon: Syringe, color: 'text-[#EA580C]', bg: 'bg-[#EA580C]/10', hint: 'Agenda vaksin berikutnya' },
+    { name: 'Jadwal Lahir Terdekat', value: loading ? '...' : summary.nearestBirth, icon: Baby, color: 'text-pink-500', bg: 'bg-pink-500/10', hint: 'Estimasi kelahiran terdekat' },
+    { name: 'Status Sanitasi Kandang', value: loading ? '...' : summary.sanitationStatus, icon: Droplets, color: 'text-emerald-500', bg: 'bg-emerald-500/10', hint: loading ? 'Memuat...' : summary.sanitationDetail },
   ];
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Home</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
         <p className="text-muted-foreground mt-2">
-          Pantau kesehatan dan aktivitas farm Anda secara real-time.
+          Pantau populasi, vaksinasi, reproduksi, dan sanitasi farm secara ringkas.
         </p>
       </div>
 
@@ -136,20 +143,21 @@ export default function DashboardPage() {
           <Link
             key={stat.name}
             href={
-              stat.name === 'Total Babi'
+              stat.name === 'Populasi'
                 ? '/dashboard/babi'
-                : stat.name === 'Total Kandang'
-                ? '/dashboard/kandang'
-                : stat.name === 'Babi Sehat'
-                ? '/dashboard/babi?filter=sehat'
-                : '/dashboard/babi?filter=sakit'
+                : stat.name === 'Jadwal Vaksin Terdekat'
+                ? '/dashboard/jadwal'
+                : stat.name === 'Jadwal Lahir Terdekat'
+                ? '/dashboard/jadwal'
+                : '/dashboard/kandang'
             }
             className="bg-card border border-border rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow"
           >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-1">{stat.name}</p>
-                <h3 className="text-3xl font-bold text-foreground">{stat.value}</h3>
+                <h3 className="text-2xl font-bold text-foreground leading-tight">{stat.value}</h3>
+                <p className="mt-2 text-xs text-muted-foreground">{stat.hint}</p>
               </div>
               <div className={`p-3 rounded-full ${stat.bg}`}>
                 <stat.icon className={`w-6 h-6 ${stat.color}`} />
@@ -166,7 +174,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <Bell className="w-5 h-5 text-primary" />
-              Pengingat Jadwal
+              Agenda Terdekat
             </h2>
           </div>
 

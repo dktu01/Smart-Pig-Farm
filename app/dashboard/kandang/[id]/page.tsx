@@ -160,7 +160,6 @@ export default function DetailKandangPage() {
                     <tr className="border-b border-border text-muted-foreground">
                       <th className="pb-3 pr-4 font-medium">Kode Babi</th>
                       <th className="pb-3 px-4 font-medium">Jenis Kelamin</th>
-                      <th className="pb-3 px-4 font-medium">Status Kesehatan</th>
                       <th className="pb-3 px-4 font-medium text-right">Aksi</th>
                     </tr>
                   </thead>
@@ -169,11 +168,6 @@ export default function DetailKandangPage() {
                       <tr key={b.id} className="border-b border-border/50 hover:bg-secondary/50 transition-colors">
                         <td className="py-3 pr-4 font-bold text-foreground">{b.kode_babi}</td>
                         <td className="py-3 px-4">{b.jenis_kelamin}</td>
-                        <td className="py-3 px-4">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${b.status_kesehatan === 'Sehat' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-destructive/10 text-destructive border-destructive/20'}`}>
-                            {b.status_kesehatan}
-                          </span>
-                        </td>
                         <td className="py-3 px-4 text-right">
                           <a href={`/dashboard/babi/${b.id}`} className="text-sm text-primary hover:underline font-medium">
                             Lihat Detail

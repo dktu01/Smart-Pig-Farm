@@ -14,9 +14,10 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { useAuthSession } from '@/components/auth-session-provider';
 
 const menuItems = [
-  { name: 'Home', icon: Home, href: '/dashboard' },
+  { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
   { name: 'Kandang', icon: Home, href: '/dashboard/kandang' },
   { name: 'Data Babi', icon: PiggyBank, href: '/dashboard/babi' },
   { name: 'Jadwal', icon: Calendar, href: '/dashboard/jadwal' },
@@ -26,6 +27,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const { session, clearSession } = useAuthSession();
+  const logoSrc = '/assets/logo-placeholder.svg';
 
   useEffect(() => {
     const checkUser = async () => {
@@ -38,6 +41,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [router]);
 
   const handleLogout = async () => {
+    clearSession();
     await supabase.auth.signOut();
     router.push('/login');
   };
@@ -60,8 +64,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="h-full flex flex-col">
           <div className="h-16 flex items-center justify-between px-6 border-b border-border">
             <Link href="/dashboard" className="flex items-center gap-2">
-              <PiggyBank className="w-6 h-6 text-primary" />
-              <span className="font-bold text-lg text-foreground tracking-tight">Smart Pig Farm</span>
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                  <img src={logoSrc} alt="Smart Pig Farm logo placeholder" className="h-5 w-5 object-contain" />
+                </div>
+                <div>
+                  <span className="block text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Smart Pig Farm</span>
+                  <span className="block font-bold text-lg text-foreground tracking-tight">Dashboard</span>
+                </div>
             </Link>
             <button 
               className="lg:hidden text-muted-foreground hover:text-foreground"
@@ -72,6 +81,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
+            <div className="mx-2 mb-4 rounded-2xl border border-border bg-secondary/40 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Session</p>
+              <p className="mt-2 text-sm font-semibold text-foreground">{session?.name || 'Guest'}</p>
+              <p className="text-xs text-muted-foreground break-all">{session?.email || 'Belum login'}</p>
+            </div>
             <div className="mb-4 px-2">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Menu Utama
@@ -123,9 +137,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           >
             <Menu className="w-6 h-6" />
           </button>
-            <div className="flex items-center gap-2">
-            <PiggyBank className="w-6 h-6 text-primary" />
-            <span className="font-bold text-foreground">Smart Pig Farm</span>
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <img src={logoSrc} alt="Smart Pig Farm logo placeholder" className="h-4 w-4 object-contain" />
+            </div>
+            <div className="leading-tight">
+              <span className="block text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Smart Pig Farm</span>
+              <span className="block font-bold text-foreground">Dashboard</span>
+            </div>
           </div>
           <div className="w-6" /> {/* Spacer for centering */}
         </header>

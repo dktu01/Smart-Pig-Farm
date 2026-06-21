@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { PiggyBank, Plus, Search, Calendar, Heart, MoreHorizontal, X, Stethoscope, Trash2, Edit, Syringe, MapPin, ChevronRight } from 'lucide-react';
+import { PiggyBank, Plus, Search, Calendar, Heart, MoreHorizontal, X, Trash2, Edit, Syringe, MapPin, ChevronRight } from 'lucide-react';
 
 // Type definitions based on schema
 type Kandang = {
@@ -38,7 +38,6 @@ export default function DataBabiPage() {
     tanggal_berikutnya: '',
     catatan: ''
   });
-  const [isHealthModalOpen, setIsHealthModalOpen] = useState(false);
   const [selectedBabi, setSelectedBabi] = useState<Babi | null>(null);
   // Dropdown menu state per row
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
@@ -50,21 +49,11 @@ export default function DataBabiPage() {
     jenis_kelamin: 'Betina',
     tanggal_lahir: new Date().toISOString().split('T')[0],
     kandang_id: '',
-    status_kesehatan: 'Sehat',
     status_reproduksi: 'Belum Kawin',
   });
 
   // New filter states for Indukan and health status
   const [categoryFilter, setCategoryFilter] = useState<'Semua' | 'Indukan'>('Semua');
-  const [healthStatusFilter, setHealthStatusFilter] = useState<'Semua' | 'Sehat' | 'Sakit'>('Semua');
-
-  // Add Health Record Form
-  const [healthData, setHealthData] = useState({
-    penyakit: '',
-    obat_diberikan: '',
-    status: 'Ringan',
-    catatan: ''
-  });
 
   useEffect(() => {
     fetchData();
@@ -141,7 +130,6 @@ export default function DataBabiPage() {
             jenis_kelamin: formData.jenis_kelamin,
             tanggal_lahir: formData.tanggal_lahir,
             kandang_id: formData.kandang_id,
-            status_kesehatan: formData.status_kesehatan,
             status_reproduksi: formData.status_reproduksi
           }
         ])
@@ -172,7 +160,6 @@ export default function DataBabiPage() {
       jenis_kelamin: babi.jenis_kelamin,
       tanggal_lahir: babi.tanggal_lahir,
       kandang_id: babi.kandang_id,
-      status_kesehatan: babi.status_kesehatan,
       status_reproduksi: babi.status_reproduksi,
     });
     setIsAddModalOpen(true);
@@ -223,58 +210,6 @@ export default function DataBabiPage() {
     alert('Data vaksinasi berhasil disimpan!');
   };
 
-  const handleAddHealthRecord = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedBabi) return;
-
-    // 1. Insert riwayat kesehatan
-    const { error: healthError } = await supabase
-      .from('kesehatan')
-      .insert([{
-        babi_id: selectedBabi.id,
-        penyakit: healthData.penyakit,
-        obat_diberikan: healthData.obat_diberikan,
-        catatan: healthData.catatan,
-        status: healthData.status
-      }]);
-
-    if (healthError) {
-      alert('Gagal menyimpan riwayat: ' + healthError.message);
-      return;
-    }
-
-    // 2. Update status kesehatan babi
-    const newStatus = healthData.status === 'Sembuh' ? 'Sehat' : `Sakit ${healthData.status}`;
-
-    const { error: updateError } = await supabase
-      .from('babi')
-      .update({ status_kesehatan: newStatus })
-      .eq('id', selectedBabi.id);
-
-    if (!updateError) {
-      // Update local state
-      setBabiList(babiList.map(b =>
-        b.id === selectedBabi.id
-          ? { ...b, status_kesehatan: newStatus }
-          : b
-      ));
-      setIsHealthModalOpen(false);
-      setHealthData({ penyakit: '', obat_diberikan: '', status: 'Ringan', catatan: '' });
-      alert('Status kesehatan berhasil diperbarui!');
-    }
-  };
-
-  const getHealthBadge = (status: string) => {
-    const normalized = status?.toLowerCase() || '';
-    if (normalized.includes('sehat')) {
-      return { label: 'Sehat', className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
-    }
-    if (normalized.includes('pantau')) {
-      return { label: 'Pantauan', className: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20' };
-    }
-    return { label: 'Sakit', className: 'bg-destructive/10 text-destructive border-destructive/20' };
-  };
-
   const handleDeleteBabi = async (id: string, kode: string) => {
     if (!window.confirm(`Apakah Anda yakin ingin menghapus babi dengan kode ${kode}? Semua data terkait (kesehatan, reproduksi) mungkin akan ikut terhapus atau menjadi yatim.`)) return;
 
@@ -307,16 +242,11 @@ export default function DataBabiPage() {
     return { label: 'Vaksin Lengkap', className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
   };
 
-  // Compute filtered list based on selected filters
   const filteredBabi = babiList.filter((b) => {
     const matchesCategory =
       categoryFilter === 'Semua' ||
       (categoryFilter === 'Indukan' && b.status_reproduksi !== 'Belum Kawin');
-    const matchesHealth =
-      healthStatusFilter === 'Semua' ||
-      (healthStatusFilter === 'Sehat' && b.status_kesehatan === 'Sehat') ||
-      (healthStatusFilter === 'Sakit' && b.status_kesehatan !== 'Sehat');
-    return matchesCategory && matchesHealth;
+    return matchesCategory;
   }).sort((a, b) => {
     const kandangA = a.kandang?.nama_kandang || '';
     const kandangB = b.kandang?.nama_kandang || '';
@@ -362,15 +292,6 @@ export default function DataBabiPage() {
           <option value="Semua">Kategori: Semua</option>
           <option value="Indukan">Indukan (kawin)</option>
         </select>
-        <select
-          value={healthStatusFilter}
-          onChange={(e) => setHealthStatusFilter(e.target.value as 'Semua' | 'Sehat' | 'Sakit')}
-          className="bg-background border border-input rounded-lg text-sm px-3 py-2 text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
-        >
-          <option value="Semua">Status: Semua</option>
-          <option value="Sehat">Sehat</option>
-          <option value="Sakit">Sakit</option>
-        </select>
       </div>
 
       {/* Table Data */}
@@ -411,14 +332,12 @@ export default function DataBabiPage() {
                 <tr>
                   <th className="px-6 py-4">Identitas</th>
                   <th className="px-6 py-4">Profil</th>
-                  <th className="px-6 py-4">Kesehatan</th>
                   <th className="px-6 py-4">Reproduksi</th>
                   <th className="px-6 py-4 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {filteredBabi.map((babi) => {
-                  const healthBadge = getHealthBadge(babi.status_kesehatan);
                   return (
                     <tr
                       key={babi.id}
@@ -447,11 +366,6 @@ export default function DataBabiPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${healthBadge.className}`}>
-                          {healthBadge.label}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
                         <span className="inline-flex items-center gap-1.5 text-sm text-foreground font-medium">
                           <Heart className="w-4 h-4 text-pink-500" />
                           {babi.status_reproduksi || '-'}
@@ -466,7 +380,7 @@ export default function DataBabiPage() {
                             title="Catat Vaksinasi"
                           >
                             <Syringe className="w-3.5 h-3.5" />
-                            💉
+                            Vaksin
                           </button>
                           {/* ... dropdown for Edit & Delete */}
                           <div className="relative">
@@ -509,7 +423,6 @@ export default function DataBabiPage() {
           </div>
           <div className="grid gap-3 md:hidden p-4">
             {filteredBabi.map((babi) => {
-              const healthBadge = getHealthBadge(babi.status_kesehatan);
               return (
                 <div
                   key={babi.id}
@@ -538,9 +451,6 @@ export default function DataBabiPage() {
                   </div>
 
                   <div className="mt-3 flex items-center justify-between gap-3">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${healthBadge.className}`}>
-                      {healthBadge.label}
-                    </span>
                     <div className="text-xs text-muted-foreground">Kode Kandang: {babi.kandang?.nama_kandang || '-'}</div>
                   </div>
 
@@ -664,28 +574,6 @@ export default function DataBabiPage() {
               </div>
             </div>
 
-            {/* Status Kesehatan */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">
-                  Status Kesehatan
-                </label>
-                <select
-                  value={formData.status_kesehatan}
-                  onChange={(e) =>
-                    setFormData({ ...formData, status_kesehatan: e.target.value })
-                  }
-                  className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
-                >
-                  <option value="Sehat">Sehat</option>
-                  <option value="Sakit Ringan">Sakit Ringan</option>
-                  <option value="Sakit Sedang">Sakit Sedang</option>
-                  <option value="Sakit Parah">Sakit Parah</option>
-                </select>
-              </div>
-            </div>
-
-
             <div className="pt-4 flex gap-3">
               <button
                 type="button"
@@ -789,93 +677,6 @@ export default function DataBabiPage() {
   )
 }
 
-{/* Modal Input Kesehatan */ }
-{
-  isHealthModalOpen && selectedBabi && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-      <div className="bg-card w-full max-w-md rounded-2xl shadow-xl border border-border overflow-hidden">
-        <div className="flex items-center justify-between p-5 border-b border-border bg-destructive/10">
-          <div className="flex items-center gap-2">
-            <Stethoscope className="w-5 h-5 text-destructive" />
-            <h2 className="text-lg font-semibold text-destructive">Catat Medis: {selectedBabi.kode_babi}</h2>
-          </div>
-          <button
-            onClick={() => setIsHealthModalOpen(false)}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <form onSubmit={handleAddHealthRecord} className="p-5 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Indikasi Penyakit / Gejala</label>
-            <input
-              type="text"
-              required
-              value={healthData.penyakit}
-              onChange={(e) => setHealthData({ ...healthData, penyakit: e.target.value })}
-              className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
-              placeholder="Contoh: Diare, Demam, Cacingan..."
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Status Parah</label>
-              <select
-                value={healthData.status}
-                onChange={(e) => setHealthData({ ...healthData, status: e.target.value })}
-                className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
-              >
-                <option value="Ringan">Sakit Ringan</option>
-                <option value="Sedang">Sakit Sedang</option>
-                <option value="Parah">Sakit Parah</option>
-                <option value="Sembuh">Sembuh</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Obat Diberikan</label>
-              <input
-                type="text"
-                value={healthData.obat_diberikan}
-                onChange={(e) => setHealthData({ ...healthData, obat_diberikan: e.target.value })}
-                className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground"
-                placeholder="Contoh: Amoxicillin"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Catatan Tambahan</label>
-            <textarea
-              value={healthData.catatan}
-              onChange={(e) => setHealthData({ ...healthData, catatan: e.target.value })}
-              className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary text-foreground resize-none"
-              rows={3}
-              placeholder="Tuliskan catatan monitoring..."
-            />
-          </div>
-
-          <div className="pt-4 flex gap-3">
-            <button
-              type="button"
-              onClick={() => setIsHealthModalOpen(false)}
-              className="flex-1 px-4 py-2.5 border border-border bg-background hover:bg-secondary text-foreground rounded-lg font-medium transition-colors"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors"
-            >
-              Simpan Catatan Medis
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-      )}
     </div>
   );
 }

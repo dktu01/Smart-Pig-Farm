@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Info, Activity, Syringe, Heart, PiggyBank, Plus, X } from 'lucide-react';
+import { ArrowLeft, Info, Syringe, Heart, PiggyBank, Plus, X } from 'lucide-react';
 
 export default function DetailBabiPage() {
   const params = useParams();
@@ -14,18 +14,15 @@ export default function DetailBabiPage() {
   const [loading, setLoading] = useState(true);
   
   // Modal states
-  const [isKesModalOpen, setIsKesModalOpen] = useState(false);
   const [isVakModalOpen, setIsVakModalOpen] = useState(false);
   const [isRepModalOpen, setIsRepModalOpen] = useState(false);
 
   // Form states
-  const [kesForm, setKesForm] = useState({ penyakit: '', obat_diberikan: '', status: 'Ringan', catatan: '' });
   const [vakForm, setVakForm] = useState({ jenis_vaksin: '', tanggal_vaksin: new Date().toISOString().split('T')[0], tanggal_berikutnya: '', catatan: '' });
   const [repForm, setRepForm] = useState({ babi_jantan_kode: '', tanggal_kawin: new Date().toISOString().split('T')[0], status_bunting: false, estimasi_lahir: '' });
 
   
   const [babi, setBabi] = useState<any>(null);
-  const [kesehatan, setKesehatan] = useState<any[]>([]);
   const [vaksinasi, setVaksinasi] = useState<any[]>([]);
   const [reproduksi, setReproduksi] = useState<any[]>([]);
 
@@ -44,14 +41,6 @@ export default function DetailBabiPage() {
       .single();
       
     if (babiData) setBabi(babiData);
-
-    // Fetch Kesehatan
-    const { data: kesData } = await supabase
-      .from('kesehatan')
-      .select('*')
-      .eq('babi_id', id)
-      .order('tanggal_sakit', { ascending: false });
-    if (kesData) setKesehatan(kesData);
 
     // Fetch Vaksinasi
     const { data: vakData } = await supabase
@@ -72,29 +61,6 @@ export default function DetailBabiPage() {
     }
 
     setLoading(false);
-  };
-
-  const handleAddKesehatan = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const { data, error } = await supabase.from('kesehatan').insert([{
-      babi_id: id,
-      tanggal_sakit: new Date().toISOString().split('T')[0],
-      penyakit: kesForm.penyakit,
-      obat_diberikan: kesForm.obat_diberikan,
-      status: kesForm.status,
-      catatan: kesForm.catatan
-    }]).select();
-
-    if (!error && data) {
-      setKesehatan([data[0], ...kesehatan]);
-      setIsKesModalOpen(false);
-      setKesForm({ penyakit: '', obat_diberikan: '', status: 'Ringan', catatan: '' });
-      // Update status babi
-      if (kesForm.status !== 'Sembuh') {
-        await supabase.from('babi').update({ status_kesehatan: 'Sakit' }).eq('id', id);
-        setBabi({...babi, status_kesehatan: 'Sakit'});
-      }
-    } else alert(error?.message);
   };
 
   const handleAddVaksin = async (e: React.FormEvent) => {
@@ -146,7 +112,6 @@ export default function DetailBabiPage() {
 
   const tabs = [
     { id: 'info', label: 'Informasi Dasar', icon: Info },
-    { id: 'kesehatan', label: 'Riwayat Kesehatan', icon: Activity },
     { id: 'vaksinasi', label: 'Riwayat Vaksin', icon: Syringe },
   ];
 
@@ -218,61 +183,10 @@ export default function DetailBabiPage() {
                 <div className="text-sm text-muted-foreground">Kandang</div>
                 <div className="font-medium text-foreground">{babi.kandang?.nama_kandang || '-'}</div>
                 
-                <div className="text-sm text-muted-foreground">Kesehatan</div>
-                <div>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${babi.status_kesehatan === 'Sehat' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-destructive/10 text-destructive border-destructive/20'}`}>
-                    {babi.status_kesehatan}
-                  </span>
-                </div>
-                
                 <div className="text-sm text-muted-foreground">Status Reproduksi</div>
                 <div className="font-medium text-foreground">{babi.status_reproduksi || '-'}</div>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* TAB 2: KESEHATAN */}
-        {activeTab === 'kesehatan' && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Riwayat Medis & Penyakit</h3>
-              <button onClick={() => setIsKesModalOpen(true)} className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 rounded-md transition-colors text-sm font-medium">
-                <Plus className="w-4 h-4" /> Catat Sakit/Medis
-              </button>
-            </div>
-            {kesehatan.length === 0 ? (
-              <p className="text-muted-foreground italic">Belum ada riwayat sakit.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm border-collapse">
-                  <thead>
-                    <tr className="border-b border-border text-muted-foreground">
-                      <th className="pb-3 pr-4">Tanggal</th>
-                      <th className="pb-3 px-4">Penyakit</th>
-                      <th className="pb-3 px-4">Status</th>
-                      <th className="pb-3 px-4">Pengobatan</th>
-                      <th className="pb-3 pl-4">Catatan</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {kesehatan.map((k) => (
-                      <tr key={k.id} className="border-b border-border/50 hover:bg-secondary/50">
-                        <td className="py-3 pr-4">{k.tanggal_sakit}</td>
-                        <td className="py-3 px-4 font-medium">{k.penyakit}</td>
-                        <td className="py-3 px-4">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${k.status === 'Sembuh' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-destructive/10 text-destructive'}`}>
-                            {k.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">{k.obat_diberikan || '-'}</td>
-                        <td className="py-3 pl-4 text-muted-foreground">{k.catatan || '-'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
           </div>
         )}
 
@@ -397,25 +311,6 @@ export default function DetailBabiPage() {
         )}
       </div>
 
-      {/* Modals for Input */}
-      {isKesModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-          <div className="bg-card w-full max-w-md rounded-2xl shadow-xl border border-border p-5">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">Catat Kesehatan Baru</h2>
-              <button onClick={() => setIsKesModalOpen(false)}><X className="w-5 h-5 text-muted-foreground" /></button>
-            </div>
-            <form onSubmit={handleAddKesehatan} className="space-y-4">
-              <div><label className="text-sm font-medium">Penyakit/Gejala</label><input required value={kesForm.penyakit} onChange={e=>setKesForm({...kesForm, penyakit: e.target.value})} className="w-full border rounded-lg p-2 bg-background mt-1" /></div>
-              <div><label className="text-sm font-medium">Status</label><select value={kesForm.status} onChange={e=>setKesForm({...kesForm, status: e.target.value})} className="w-full border rounded-lg p-2 bg-background mt-1"><option>Ringan</option><option>Berat</option><option>Karantina</option><option>Sembuh</option></select></div>
-              <div><label className="text-sm font-medium">Obat Diberikan (Opsional)</label><input value={kesForm.obat_diberikan} onChange={e=>setKesForm({...kesForm, obat_diberikan: e.target.value})} className="w-full border rounded-lg p-2 bg-background mt-1" /></div>
-              <div><label className="text-sm font-medium">Catatan (Opsional)</label><input value={kesForm.catatan} onChange={e=>setKesForm({...kesForm, catatan: e.target.value})} className="w-full border rounded-lg p-2 bg-background mt-1" /></div>
-              <button type="submit" className="w-full bg-primary text-white p-2 rounded-lg font-medium">Simpan</button>
-            </form>
-          </div>
-        </div>
-      )}
-
       {isVakModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
           <div className="bg-card w-full max-w-md rounded-2xl shadow-xl border border-border p-5">
@@ -466,13 +361,6 @@ export default function DetailBabiPage() {
         >
           <Syringe className="w-4 h-4" />
           Input Vaksin
-        </button>
-        <button
-          onClick={() => setIsKesModalOpen(true)}
-          className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-destructive text-white py-3 font-semibold active:scale-95 transition-transform"
-        >
-          <Activity className="w-4 h-4" />
-          Catat Medis
         </button>
         {babi.jenis_kelamin === 'Betina' && (
           <button

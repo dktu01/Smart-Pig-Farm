@@ -4,9 +4,11 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Lock, Mail, PiggyBank } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAuthSession } from '@/components/auth-session-provider';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { setSession } = useAuthSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,22 +27,13 @@ export default function LoginPage() {
     if (error) {
       setError(error.message);
     } else {
+      const { data } = await supabase.auth.getUser();
+      setSession({
+        name: data.user?.user_metadata?.full_name || data.user?.user_metadata?.name || 'Pengguna',
+        email: data.user?.email || email,
+      });
       router.push('/dashboard');
     }
-    setLoading(false);
-  };
-
-  const handleResetPassword = async () => {
-    if (!email) {
-      setError('Silakan masukkan email Anda untuk mereset password.');
-      return;
-    }
-    setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/dashboard`,
-    });
-    if (error) setError(error.message);
-    else alert('Link reset password telah dikirim ke email Anda!');
     setLoading(false);
   };
 
@@ -55,8 +48,8 @@ export default function LoginPage() {
           </div>
           
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-foreground">Welcome Back</h2>
-            <p className="text-sm text-muted-foreground mt-2">Login to your farm management dashboard</p>
+            <h2 className="text-2xl font-bold text-foreground">Login</h2>
+            <p className="text-sm text-muted-foreground mt-2">Masuk untuk mengelola dashboard farm</p>
           </div>
 
           {error && (
@@ -67,7 +60,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Email Address</label>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Email</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Mail className="h-4 w-4 text-muted-foreground" />
@@ -78,22 +71,13 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="block w-full pl-10 pr-3 py-2.5 bg-background border border-input rounded-lg text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors sm:text-sm"
-                  placeholder="owner@smartpigfarm.com"
+                  placeholder="nama@smartpigfarm.com"
                 />
               </div>
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-sm font-medium text-foreground">Password</label>
-                <button 
-                  type="button" 
-                  onClick={handleResetPassword}
-                  className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-                >
-                  Forgot password?
-                </button>
-              </div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Password</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock className="h-4 w-4 text-muted-foreground" />
@@ -114,13 +98,13 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? 'Memproses...' : 'Login'}
             </button>
             
             <p className="text-center text-sm text-muted-foreground mt-4">
-              Don't have an account?{' '}
+              Belum punya akun?{' '}
               <a href="/register" className="font-medium text-primary hover:text-primary/80 transition-colors">
-                Sign up
+                Register
               </a>
             </p>
           </form>
