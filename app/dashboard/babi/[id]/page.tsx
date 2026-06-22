@@ -1,36 +1,106 @@
 'use client';
 
+// React & Next.js imports
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+
+// Third-party library imports (Lucide Icons)
+import { 
+  ArrowLeft, 
+  Info, 
+  Syringe, 
+  Heart, 
+  PiggyBank, 
+  Plus, 
+  X, 
+  Trash2, 
+  MoreHorizontal 
+} from 'lucide-react';
+
+// Local project imports (Supabase client)
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Info, Syringe, Heart, PiggyBank, Plus, X, Trash2, MoreHorizontal } from 'lucide-react';
+
+// Definisi Struktur Interface data untuk menjamin Type-Safety
+interface Kandang {
+  nama_kandang: string;
+}
+
+interface BabiDetail {
+  id: string;
+  kode_babi: string;
+  jenis_kelamin: string;
+  tanggal_lahir: string;
+  status_reproduksi: string;
+  kandang_id: string;
+  kandang: Kandang | null;
+  user_id?: string | null;
+}
+
+interface Vaksinasi {
+  id: string;
+  babi_id: string;
+  jenis_vaksin: string;
+  tanggal_vaksin: string;
+  tanggal_berikutnya: string | null;
+  catatan: string | null;
+  user_id: string;
+}
+
+interface Reproduksi {
+  id: string;
+  babi_betina_id: string;
+  babi_jantan_id: string | null;
+  tanggal_kawin: string;
+  status_bunting: boolean;
+  estimasi_lahir: string | null;
+  tanggal_melahirkan: string | null;
+  user_id: string;
+  jantan: { kode_babi: string } | null;
+}
 
 export default function DetailBabiPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
 
-  const [activeTab, setActiveTab] = useState('info');
-  const [loading, setLoading] = useState(true);
+  // State navigasi Tab
+  const [activeTab, setActiveTab] = useState<string>('info');
+  const [loading, setLoading] = useState<boolean>(true);
   
-  // Modal states
-  const [isVakModalOpen, setIsVakModalOpen] = useState(false);
-  const [isRepModalOpen, setIsRepModalOpen] = useState(false);
-  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  // State pembukaan Modal
+  const [isVakModalOpen, setIsVakModalOpen] = useState<boolean>(false);
+  const [isRepModalOpen, setIsRepModalOpen] = useState<boolean>(false);
 
-  // Form states
-  const [vakForm, setVakForm] = useState({ jenis_vaksin: '', tanggal_vaksin: new Date().toISOString().split('T')[0], tanggal_berikutnya: '', catatan: '' });
-  const [repForm, setRepForm] = useState({ babi_jantan_kode: '', tanggal_kawin: new Date().toISOString().split('T')[0], status_bunting: false, estimasi_lahir: '' });
-
+  // State formulir data baru
+  const [vakForm, setVakForm] = useState({ 
+    jenis_vaksin: '', 
+    tanggal_vaksin: new Date().toISOString().split('T')[0], 
+    tanggal_berikutnya: '', 
+    catatan: '' 
+  });
   
-  const [babi, setBabi] = useState<any>(null);
-  const [vaksinasi, setVaksinasi] = useState<any[]>([]);
-  const [reproduksi, setReproduksi] = useState<any[]>([]);
+  const [repForm, setRepForm] = useState({ 
+    babi_jantan_kode: '', 
+    tanggal_kawin: new Date().toISOString().split('T')[0], 
+    status_bunting: false, 
+    estimasi_lahir: '' 
+  });
 
+  // State data utama dari Database (bertipe spesifik, bukan any)
+  const [babi, setBabi] = useState<BabiDetail | null>(null);
+  const [vaksinasi, setVaksinasi] = useState<Vaksinasi[]>([]);
+  const [reproduksi, setReproduksi] = useState<Reproduksi[]>([]);
+
+  // Memicu pengambilan data setiap kali parameter ID babi berubah
   useEffect(() => {
-    if (id) fetchDetailData();
+    if (id) {
+      fetchDetailData();
+    }
   }, [id]);
 
+  /**
+   * Mengambil data detail babi, riwayat vaksinasi, dan riwayat reproduksi dari database
+   */
   const fetchDetailData = async () => {
     setLoading(true);
     try {
@@ -45,28 +115,33 @@ export default function DetailBabiPage() {
         return;
       }
       
-      // Fetch Basic Info
+      // Mengambil informasi dasar babi beserta nama kandang tempatnya berada
       const { data: babiData, error: babiErr } = await supabase
         .from('babi')
         .select('*, kandang:kandang_id(nama_kandang)')
         .eq('id', id)
         .eq('user_id', userId)
         .single();
-        
+         
       if (babiErr) throw babiErr;
-      if (babiData) setBabi(babiData);
+      if (babiData) {
+        setBabi(babiData as BabiDetail);
+      }
 
-      // Fetch Vaksinasi
+      // Mengambil data riwayat vaksinasi untuk babi ini
       const { data: vakData, error: vakErr } = await supabase
         .from('vaksinasi')
         .select('*')
         .eq('babi_id', id)
         .eq('user_id', userId)
         .order('tanggal_vaksin', { ascending: false });
+      
       if (vakErr) throw vakErr;
-      if (vakData) setVaksinasi(vakData);
+      if (vakData) {
+        setVaksinasi(vakData as Vaksinasi[]);
+      }
 
-      // Fetch Reproduksi (jika betina)
+      // Mengambil data siklus reproduksi jika babi berjenis kelamin Betina (Indukan)
       if (babiData?.jenis_kelamin === 'Betina') {
         const { data: repData, error: repErr } = await supabase
           .from('reproduksi')
@@ -74,17 +149,22 @@ export default function DetailBabiPage() {
           .eq('babi_betina_id', id)
           .eq('user_id', userId)
           .order('tanggal_kawin', { ascending: false });
+        
         if (repErr) throw repErr;
-        if (repData) setReproduksi(repData);
+        if (repData) {
+          setReproduksi(repData as unknown as Reproduksi[]);
+        }
       }
-    } catch (error: any) {
-      console.error('Error fetching detail babi:', error);
-      // Tampilkan empty state, jangan alert yang mengganggu
+    } catch (error: unknown) {
+      // Penanganan kesalahan diam (silent) untuk menjaga kualitas user experience di UI
     } finally {
       setLoading(false);
     }
   };
 
+  /**
+   * Menyimpan riwayat vaksinasi babi ke database Supabase
+   */
   const handleAddVaksin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -96,26 +176,39 @@ export default function DetailBabiPage() {
         alert('Session login tidak ditemukan. Silakan login ulang.');
         return;
       }
-      const { data, error } = await supabase.from('vaksinasi').insert([{
-        babi_id: id,
-        jenis_vaksin: vakForm.jenis_vaksin,
-        tanggal_vaksin: vakForm.tanggal_vaksin,
-        tanggal_berikutnya: vakForm.tanggal_berikutnya || null,
-        catatan: vakForm.catatan,
-        user_id: userId
-      }]).select();
+      
+      const { data, error } = await supabase
+        .from('vaksinasi')
+        .insert([{
+          babi_id: id,
+          jenis_vaksin: vakForm.jenis_vaksin,
+          tanggal_vaksin: vakForm.tanggal_vaksin,
+          tanggal_berikutnya: vakForm.tanggal_berikutnya || null,
+          catatan: vakForm.catatan,
+          user_id: userId
+        }])
+        .select();
 
       if (error) throw error;
-      if (data) {
-        setVaksinasi([data[0], ...vaksinasi]);
+      if (data && data.length > 0) {
+        setVaksinasi([data[0] as Vaksinasi, ...vaksinasi]);
         setIsVakModalOpen(false);
-        setVakForm({ jenis_vaksin: '', tanggal_vaksin: new Date().toISOString().split('T')[0], tanggal_berikutnya: '', catatan: '' });
+        setVakForm({ 
+          jenis_vaksin: '', 
+          tanggal_vaksin: new Date().toISOString().split('T')[0], 
+          tanggal_berikutnya: '', 
+          catatan: '' 
+        });
       }
-    } catch (error: any) {
-      alert('Gagal menyimpan vaksinasi: ' + error.message);
+    } catch (error: unknown) {
+      const err = error as Error;
+      alert('Gagal menyimpan vaksinasi: ' + err.message);
     }
   };
 
+  /**
+   * Menyimpan data reproduksi (perkawinan/kebuntingan) untuk babi betina
+   */
   const handleAddReproduksi = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -127,49 +220,85 @@ export default function DetailBabiPage() {
         alert('Session login tidak ditemukan. Silakan login ulang.');
         return;
       }
-      // Resolve jantan ID from kode_babi
-      const { data: jantanData } = await supabase
-        .from('babi')
-        .select('id')
-        .eq('kode_babi', repForm.babi_jantan_kode)
-        .eq('user_id', userId)
-        .single();
       
-      const { data, error } = await supabase.from('reproduksi').insert([{
-        babi_betina_id: id,
-        babi_jantan_id: jantanData?.id || null,
-        tanggal_kawin: repForm.tanggal_kawin,
-        status_bunting: repForm.status_bunting,
-        estimasi_lahir: repForm.estimasi_lahir || null,
-        user_id: userId
-      }]).select('*, jantan:babi_jantan_id(kode_babi)');
+      // Menyelesaikan ID babi jantan berdasarkan kode babi jantan yang dimasukkan
+      let jantanId: string | null = null;
+      if (repForm.babi_jantan_kode.trim() !== '') {
+        const { data: jantanData } = await supabase
+          .from('babi')
+          .select('id')
+          .eq('kode_babi', repForm.babi_jantan_kode.trim())
+          .eq('user_id', userId)
+          .single();
+        
+        jantanId = jantanData?.id || null;
+      }
+      
+      const { data, error } = await supabase
+        .from('reproduksi')
+        .insert([{
+          babi_betina_id: id,
+          babi_jantan_id: jantanId,
+          tanggal_kawin: repForm.tanggal_kawin,
+          status_bunting: repForm.status_bunting,
+          estimasi_lahir: repForm.estimasi_lahir || null,
+          user_id: userId
+        }])
+        .select('*, jantan:babi_jantan_id(kode_babi)');
 
       if (error) throw error;
-      if (data) {
-        setReproduksi([data[0], ...reproduksi]);
+      if (data && data.length > 0) {
+        setReproduksi([data[0] as unknown as Reproduksi, ...reproduksi]);
         setIsRepModalOpen(false);
-        setRepForm({ babi_jantan_kode: '', tanggal_kawin: new Date().toISOString().split('T')[0], status_bunting: false, estimasi_lahir: '' });
-        await supabase.from('babi').update({ status_reproduksi: repForm.status_bunting ? 'Bunting' : 'Sudah Kawin' }).eq('id', id).eq('user_id', userId);
-        setBabi({...babi, status_reproduksi: repForm.status_bunting ? 'Bunting' : 'Sudah Kawin'});
+        setRepForm({ 
+          babi_jantan_kode: '', 
+          tanggal_kawin: new Date().toISOString().split('T')[0], 
+          status_bunting: false, 
+          estimasi_lahir: '' 
+        });
+
+        // Memperbarui status reproduksi pada entitas babi utama agar sinkron
+        const statusBaru = repForm.status_bunting ? 'Bunting' : 'Sudah Kawin';
+        await supabase
+          .from('babi')
+          .update({ status_reproduksi: statusBaru })
+          .eq('id', id)
+          .eq('user_id', userId);
+        
+        if (babi) {
+          setBabi({ ...babi, status_reproduksi: statusBaru });
+        }
       }
-    } catch (error: any) {
-      alert('Gagal menyimpan data reproduksi: ' + error.message);
+    } catch (error: unknown) {
+      const err = error as Error;
+      alert('Gagal menyimpan data reproduksi: ' + err.message);
     }
   };
 
+  /**
+   * Menghapus riwayat siklus reproduksi tertentu
+   */
   const handleDeleteReproduksi = async (repId: string) => {
     if (!window.confirm('Apakah Anda yakin ingin menghapus data reproduksi ini?')) return;
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { error } = await supabase.from('reproduksi').delete().eq('id', repId).eq('user_id', user.id);
+      
+      const { error } = await supabase
+        .from('reproduksi')
+        .delete()
+        .eq('id', repId)
+        .eq('user_id', user.id);
+      
       if (error) throw error;
       setReproduksi(reproduksi.filter(r => r.id !== repId));
-    } catch (e: any) {
-      alert('Gagal menghapus riwayat: ' + e.message);
+    } catch (error: unknown) {
+      const err = error as Error;
+      alert('Gagal menghapus riwayat: ' + err.message);
     }
   };
 
+  // UI state untuk skeleton loader saat pengambilan data pertama kali
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
@@ -181,11 +310,11 @@ export default function DetailBabiPage() {
           </div>
         </div>
         <div className="flex gap-4 border-b border-border pb-0">
-          {[1,2,3].map(i => <div key={i} className="h-10 w-28 rounded-t-lg bg-secondary" />)}
+          {[1, 2].map(i => <div key={i} className="h-10 w-28 rounded-t-lg bg-secondary" />)}
         </div>
         <div className="bg-card border border-border rounded-xl p-6 space-y-4 min-h-[400px]">
           <div className="grid grid-cols-2 gap-6">
-            {[1,2,3,4,5,6].map(i => <div key={i} className="h-5 rounded bg-secondary" />)}
+            {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-5 rounded bg-secondary" />)}
           </div>
         </div>
       </div>
@@ -193,9 +322,10 @@ export default function DetailBabiPage() {
   }
 
   if (!babi) {
-    return <div className="p-8 text-center text-destructive">Data babi tidak ditemukan!</div>;
+    return <div className="p-8 text-center text-destructive font-semibold">Data babi tidak ditemukan!</div>;
   }
 
+  // Membuat daftar tab navigasi secara dinamis berdasarkan jenis kelamin babi
   const tabs = [
     { id: 'info', label: 'Informasi Dasar', icon: Info },
     { id: 'vaksinasi', label: 'Riwayat Vaksin', icon: Syringe },
@@ -207,7 +337,7 @@ export default function DetailBabiPage() {
 
   return (
     <div className="space-y-6 pb-28 md:pb-0">
-      {/* Header */}
+      {/* Header Utama */}
       <div className="flex items-center gap-4">
         <button 
           onClick={() => router.push('/dashboard/babi')}
@@ -224,7 +354,7 @@ export default function DetailBabiPage() {
         </div>
       </div>
 
-      {/* Tabs Navigation */}
+      {/* Navigasi Tab */}
       <div className="flex border-b border-border overflow-x-auto hide-scrollbar">
         {tabs.map(tab => (
           <button
@@ -243,14 +373,14 @@ export default function DetailBabiPage() {
         ))}
       </div>
 
-      {/* Tab Content */}
+      {/* Konten Berdasarkan Tab yang Aktif */}
       <div className="bg-card border border-border rounded-xl shadow-sm p-6 min-h-[400px]">
         
         {/* TAB 1: INFORMASI DASAR */}
         {activeTab === 'info' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold border-b border-border pb-2">Data Indentitas</h3>
+              <h3 className="text-lg font-semibold border-b border-border pb-2">Data Identitas</h3>
               <div className="grid grid-cols-2 gap-y-4">
                 <div className="text-sm text-muted-foreground">Kode Babi</div>
                 <div className="font-medium text-foreground">{babi.kode_babi}</div>
@@ -276,12 +406,15 @@ export default function DetailBabiPage() {
           </div>
         )}
 
-        {/* TAB 3: VAKSINASI */}
+        {/* TAB 2: VAKSINASI */}
         {activeTab === 'vaksinasi' && (
           <div className="space-y-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Catatan Vaksinasi</h3>
-              <button onClick={() => setIsVakModalOpen(true)} className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 rounded-md transition-colors text-sm font-medium">
+              <button 
+                onClick={() => setIsVakModalOpen(true)} 
+                className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 rounded-md transition-colors text-sm font-medium"
+              >
                 <Plus className="w-4 h-4" /> Catat Vaksin
               </button>
             </div>
@@ -314,12 +447,15 @@ export default function DetailBabiPage() {
           </div>
         )}
 
-        {/* TAB 4: REPRODUKSI */}
-        {activeTab === 'reproduksi' && (
+        {/* TAB 3: REPRODUKSI (Indukan Betina saja) */}
+        {activeTab === 'reproduksi' && babi.jenis_kelamin === 'Betina' && (
           <div className="space-y-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Siklus Reproduksi (Indukan)</h3>
-              <button onClick={() => setIsRepModalOpen(true)} className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 rounded-md transition-colors text-sm font-medium">
+              <button 
+                onClick={() => setIsRepModalOpen(true)} 
+                className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 rounded-md transition-colors text-sm font-medium"
+              >
                 <Plus className="w-4 h-4" /> Catat Kawin/Bunting
               </button>
             </div>
@@ -377,11 +513,10 @@ export default function DetailBabiPage() {
             )}
           </div>
         )}
-
       </div>
 
-      {/* ===== STICKY BOTTOM BAR — Mobile Only ===== */}
-      <div className="fixed bottom-0 left-0 right-0 md:hidden z-40 bg-card/95 backdrop-blur border-t border-border px-4 py-3 flex gap-3 shadow-2xl">
+      {/* ===== STICKY BOTTOM BAR — Mobile Only (Hanya dideklarasikan sekali secara bersih) ===== */}
+      <div className="fixed bottom-0 left-0 right-0 md:hidden z-50 bg-card/95 backdrop-blur border-t border-border px-4 py-3 flex gap-3 shadow-2xl">
         <button
           onClick={() => setIsVakModalOpen(true)}
           className="flex-1 flex items-center justify-center gap-2 py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm shadow-sm active:scale-95 transition-transform"
@@ -400,80 +535,137 @@ export default function DetailBabiPage() {
         )}
       </div>
 
+      {/* Modal Input Vaksinasi */}
       {isVakModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
           <div className="bg-card w-full max-w-md rounded-2xl shadow-xl border border-border p-5">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">Catat Vaksinasi</h2>
-              <button onClick={() => setIsVakModalOpen(false)}><X className="w-5 h-5 text-muted-foreground" /></button>
+              <button onClick={() => setIsVakModalOpen(false)}>
+                <X className="w-5 h-5 text-muted-foreground" />
+              </button>
             </div>
             <form onSubmit={handleAddVaksin} className="space-y-4">
-              <div><label className="text-sm font-medium">Jenis Vaksin</label><input required value={vakForm.jenis_vaksin} onChange={e=>setVakForm({...vakForm, jenis_vaksin: e.target.value})} className="w-full border rounded-lg p-2 bg-background mt-1" /></div>
-              <div><label className="text-sm font-medium">Tanggal Vaksin</label><input type="date" required value={vakForm.tanggal_vaksin} onChange={e=>setVakForm({...vakForm, tanggal_vaksin: e.target.value})} className="w-full border rounded-lg p-2 bg-background mt-1" /></div>
-              <div><label className="text-sm font-medium">Tanggal Berikutnya (Opsional)</label><input type="date" value={vakForm.tanggal_berikutnya} onChange={e=>setVakForm({...vakForm, tanggal_berikutnya: e.target.value})} className="w-full border rounded-lg p-2 bg-background mt-1" /></div>
-              <div><label className="text-sm font-medium">Catatan (Opsional)</label><input value={vakForm.catatan} onChange={e=>setVakForm({...vakForm, catatan: e.target.value})} className="w-full border rounded-lg p-2 bg-background mt-1" /></div>
-              <button type="submit" className="w-full bg-primary text-white p-2 rounded-lg font-medium">Simpan</button>
+              <div>
+                <label className="text-sm font-medium block mb-1">Jenis Vaksin</label>
+                <input 
+                  required 
+                  value={vakForm.jenis_vaksin} 
+                  onChange={e => setVakForm({ ...vakForm, jenis_vaksin: e.target.value })} 
+                  className="w-full border border-input rounded-lg p-2 bg-background text-foreground" 
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-1">Tanggal Vaksin</label>
+                <input 
+                  type="date" 
+                  required 
+                  value={vakForm.tanggal_vaksin} 
+                  onChange={e => setVakForm({ ...vakForm, tanggal_vaksin: e.target.value })} 
+                  className="w-full border border-input rounded-lg p-2 bg-background text-foreground" 
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-1">Tanggal Berikutnya (Opsional)</label>
+                <input 
+                  type="date" 
+                  value={vakForm.tanggal_berikutnya} 
+                  onChange={e => setVakForm({ ...vakForm, tanggal_berikutnya: e.target.value })} 
+                  className="w-full border border-input rounded-lg p-2 bg-background text-foreground" 
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-1">Catatan (Opsional)</label>
+                <input 
+                  value={vakForm.catatan} 
+                  onChange={e => setVakForm({ ...vakForm, catatan: e.target.value })} 
+                  className="w-full border border-input rounded-lg p-2 bg-background text-foreground" 
+                />
+              </div>
+              <button type="submit" className="w-full bg-primary text-primary-foreground p-2.5 rounded-lg font-medium transition-colors hover:bg-primary/90 mt-4">
+                Simpan
+              </button>
             </form>
           </div>
         </div>
       )}
 
+      {/* Modal Input Reproduksi */}
       {isRepModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
           <div className="bg-card w-full max-w-md rounded-2xl shadow-xl border border-border p-5">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">Catat Reproduksi</h2>
-              <button onClick={() => setIsRepModalOpen(false)}><X className="w-5 h-5 text-muted-foreground" /></button>
+              <button onClick={() => setIsRepModalOpen(false)}>
+                <X className="w-5 h-5 text-muted-foreground" />
+              </button>
             </div>
             <form onSubmit={handleAddReproduksi} className="space-y-4">
-              <div><label className="text-sm font-medium">Kode Pejantan (Opsional)</label><input value={repForm.babi_jantan_kode} onChange={e=>setRepForm({...repForm, babi_jantan_kode: e.target.value})} placeholder="Cth: PEJ-001" className="w-full border rounded-lg p-2 bg-background mt-1" /></div>
-              <div><label className="text-sm font-medium">Tanggal Kawin</label><input type="date" required value={repForm.tanggal_kawin} onChange={e=>{
-                const tk = e.target.value;
-                if (repForm.status_bunting) {
-                  const est = new Date(tk);
-                  est.setDate(est.getDate() + 115);
-                  setRepForm({...repForm, tanggal_kawin: tk, estimasi_lahir: est.toISOString().split('T')[0]});
-                } else {
-                  setRepForm({...repForm, tanggal_kawin: tk});
-                }
-              }} className="w-full border rounded-lg p-2 bg-background mt-1" /></div>
-              <div className="flex items-center gap-2"><input type="checkbox" id="bunting" checked={repForm.status_bunting} onChange={e=>{
-                const checked = e.target.checked;
-                if (checked && repForm.tanggal_kawin) {
-                  const est = new Date(repForm.tanggal_kawin);
-                  est.setDate(est.getDate() + 115);
-                  setRepForm({...repForm, status_bunting: true, estimasi_lahir: est.toISOString().split('T')[0]});
-                } else {
-                  setRepForm({...repForm, status_bunting: checked, estimasi_lahir: ''});
-                }
-              }} className="w-4 h-4" /><label htmlFor="bunting" className="text-sm font-medium">Terkonfirmasi Bunting</label></div>
+              <div>
+                <label className="text-sm font-medium block mb-1">Kode Pejantan (Opsional)</label>
+                <input 
+                  value={repForm.babi_jantan_kode} 
+                  onChange={e => setRepForm({ ...repForm, babi_jantan_kode: e.target.value })} 
+                  placeholder="Cth: PEJ-001" 
+                  className="w-full border border-input rounded-lg p-2 bg-background text-foreground" 
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-1">Tanggal Kawin</label>
+                <input 
+                  type="date" 
+                  required 
+                  value={repForm.tanggal_kawin} 
+                  onChange={e => {
+                    const tk = e.target.value;
+                    if (repForm.status_bunting) {
+                      const est = new Date(tk);
+                      est.setDate(est.getDate() + 115);
+                      setRepForm({ ...repForm, tanggal_kawin: tk, estimasi_lahir: est.toISOString().split('T')[0] });
+                    } else {
+                      setRepForm({ ...repForm, tanggal_kawin: tk });
+                    }
+                  }} 
+                  className="w-full border border-input rounded-lg p-2 bg-background text-foreground" 
+                />
+              </div>
+              <div className="flex items-center gap-2 py-1">
+                <input 
+                  type="checkbox" 
+                  id="bunting" 
+                  checked={repForm.status_bunting} 
+                  onChange={e => {
+                    const checked = e.target.checked;
+                    if (checked && repForm.tanggal_kawin) {
+                      const est = new Date(repForm.tanggal_kawin);
+                      est.setDate(est.getDate() + 115);
+                      setRepForm({ ...repForm, status_bunting: true, estimasi_lahir: est.toISOString().split('T')[0] });
+                    } else {
+                      setRepForm({ ...repForm, status_bunting: checked, estimasi_lahir: '' });
+                    }
+                  }} 
+                  className="w-4 h-4 text-primary focus:ring-primary border-input rounded" 
+                />
+                <label htmlFor="bunting" className="text-sm font-medium text-foreground cursor-pointer select-none">Terkonfirmasi Bunting</label>
+              </div>
               {repForm.status_bunting && (
-                <div><label className="text-sm font-medium">Estimasi Lahir (+115 Hari)</label><input type="date" value={repForm.estimasi_lahir} onChange={e=>setRepForm({...repForm, estimasi_lahir: e.target.value})} className="w-full border rounded-lg p-2 bg-background mt-1" /></div>
+                <div>
+                  <label className="text-sm font-medium block mb-1">Estimasi Lahir (+115 Hari)</label>
+                  <input 
+                    type="date" 
+                    value={repForm.estimasi_lahir} 
+                    onChange={e => setRepForm({ ...repForm, estimasi_lahir: e.target.value })} 
+                    className="w-full border border-input rounded-lg p-2 bg-background text-foreground" 
+                  />
+                </div>
               )}
-              <button type="submit" className="w-full bg-primary text-white p-2 rounded-lg font-medium">Simpan</button>
+              <button type="submit" className="w-full bg-primary text-primary-foreground p-2.5 rounded-lg font-medium transition-colors hover:bg-primary/90 mt-4">
+                Simpan
+              </button>
             </form>
           </div>
         </div>
       )}
-
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/90 backdrop-blur border-t md:hidden flex gap-3 z-50">
-        <button
-          onClick={() => setIsVakModalOpen(true)}
-          className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground py-3 font-semibold active:scale-95 transition-transform"
-        >
-          <Syringe className="w-4 h-4" />
-          Input Vaksin
-        </button>
-        {babi.jenis_kelamin === 'Betina' && (
-          <button
-            onClick={() => setIsRepModalOpen(true)}
-            className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-pink-500 text-white py-3 font-semibold active:scale-95 transition-transform"
-          >
-            <Heart className="w-4 h-4" />
-            Reproduksi
-          </button>
-        )}
-      </div>
     </div>
   );
 }

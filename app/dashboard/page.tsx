@@ -1,9 +1,11 @@
 'use client';
 
+// React & Next.js imports
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+
+// Third-party library imports (Lucide Icons)
 import { 
   PiggyBank, 
   Syringe, 
@@ -12,12 +14,62 @@ import {
   Bell,
   CheckCircle2,
   Droplets,
-  Home
+  Home,
+  LucideIcon
 } from 'lucide-react';
+
+// Local project imports (Supabase client)
+import { supabase } from '@/lib/supabase';
+
+// Definisi Interface untuk menjamin Type-Safety pada Dashboard
+interface DashboardSummary {
+  totalKandang: number;
+  population: number;
+  nearestVaccine: string;
+  nearestBirth: string;
+  sanitationStatus: string;
+  sanitationDetail: string;
+}
+
+interface DashboardReminder {
+  id: string;
+  title: string;
+  time: string;
+  dateObj: Date;
+  type: 'vaccine' | 'sanitation' | 'birth';
+  icon: LucideIcon;
+  color: string;
+  bg: string;
+}
+
+// Interface respon query Supabase untuk vaksinasi terdekat
+interface VaksinQueryRow {
+  id: string;
+  jenis_vaksin: string;
+  tanggal_berikutnya: string;
+  babi: { kode_babi: string } | null;
+}
+
+// Interface respon query Supabase untuk sanitasi terdekat
+interface SanitasiQueryRow {
+  id: string;
+  jenis_disinfektan: string;
+  tanggal_berikutnya: string;
+  kandang: { nama_kandang: string } | null;
+}
+
+// Interface respon query Supabase untuk kelahiran reproduksi terdekat
+interface ReproduksiQueryRow {
+  id: string;
+  estimasi_lahir: string;
+  babi_betina: { kode_babi: string } | null;
+}
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [summary, setSummary] = useState({
+  
+  // State data ringkasan farm
+  const [summary, setSummary] = useState<DashboardSummary>({
     totalKandang: 0,
     population: 0,
     nearestVaccine: 'Belum ada jadwal',
@@ -26,13 +78,19 @@ export default function DashboardPage() {
     sanitationDetail: 'Belum ada jadwal',
   });
   
-  const [remindersList, setRemindersList] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  // State daftar agenda pengingat terdekat
+  const [remindersList, setRemindersList] = useState<DashboardReminder[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
+  // Mengambil data dashboard saat halaman dimuat
   useEffect(() => {
     fetchDashboardData();
   }, []);
 
+  /**
+   * Mengambil dan merangkum seluruh data farm (kandang, populasi babi, vaksin, sanitasi, reproduksi)
+   * menggunakan query paralel Promise.all demi performa optimal.
+   */
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
@@ -55,6 +113,7 @@ export default function DashboardPage() {
         return;
       }
       
+      // Query paralel untuk menghemat round-trip request ke server Supabase
       const [
         kandangRes,
         babiRes,
@@ -75,35 +134,43 @@ export default function DashboardPage() {
       if (sanitasiRes.error) throw sanitasiRes.error;
       if (lahirRes.error) throw lahirRes.error;
 
-      const nearestVaccine = vaksinRes.data?.[0];
-      const nearestSanitation = sanitasiRes.data?.[0];
-      const nearestBirth = lahirRes.data?.[0];
+      // Mendapatkan entitas terdekat untuk kalkulasi summary
+      const nearestVaccine = vaksinRes.data?.[0] as unknown as VaksinQueryRow | undefined;
+      const nearestSanitation = sanitasiRes.data?.[0] as unknown as SanitasiQueryRow | undefined;
+      const nearestBirth = lahirRes.data?.[0] as unknown as ReproduksiQueryRow | undefined;
+
+      // Konversi format tanggal ke bahasa Indonesia
+      const formatDateIndo = (dateStr: string) => {
+        return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+      };
 
       setSummary({
         totalKandang: kandangRes.count || 0,
         population: babiRes.count || 0,
         nearestVaccine: nearestVaccine
-          ? `${new Date(nearestVaccine.tanggal_berikutnya).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} · ${nearestVaccine.babi?.kode_babi || 'Massal'}`
+          ? `${formatDateIndo(nearestVaccine.tanggal_berikutnya)} · ${nearestVaccine.babi?.kode_babi || 'Massal'}`
           : 'Belum ada jadwal',
         nearestBirth: nearestBirth
-          ? `${new Date(nearestBirth.estimasi_lahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} · ${nearestBirth.babi_betina?.kode_babi || 'Indukan'}`
+          ? `${formatDateIndo(nearestBirth.estimasi_lahir)} · ${nearestBirth.babi_betina?.kode_babi || 'Indukan'}`
           : 'Belum ada jadwal',
         sanitationStatus: nearestSanitation
-          ? new Date(nearestSanitation.tanggal_berikutnya).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
+          ? formatDateIndo(nearestSanitation.tanggal_berikutnya)
           : 'Belum ada jadwal',
         sanitationDetail: nearestSanitation
-          ? `${nearestSanitation.kandang?.nama_kandang || 'Kandang'} · ${nearestSanitation.jenis_disinfektan || 'Sanitasi terdekat'}`
+          ? `${nearestSanitation.kandang?.nama_kandang || 'Kandang'} · ${nearestSanitation.jenis_disinfektan || 'Sanitasi'}`
           : 'Belum ada jadwal',
       });
 
-      const formattedReminders: any[] = [];
+      // Menyiapkan daftar agenda gabungan (Reminders)
+      const formattedReminders: DashboardReminder[] = [];
       
       if (vaksinRes.data) {
-        vaksinRes.data.forEach((v: any) => {
+        const rows = vaksinRes.data as unknown as VaksinQueryRow[];
+        rows.forEach((v) => {
           formattedReminders.push({
             id: `v-${v.id}`,
             title: `Vaksin ${v.jenis_vaksin} - ${v.babi?.kode_babi || 'Massal'}`,
-            time: v.tanggal_berikutnya === today ? 'Hari ini' : new Date(v.tanggal_berikutnya).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'}),
+            time: v.tanggal_berikutnya === today ? 'Hari ini' : formatDateIndo(v.tanggal_berikutnya),
             dateObj: new Date(v.tanggal_berikutnya),
             type: 'vaccine',
             icon: Syringe,
@@ -114,11 +181,12 @@ export default function DashboardPage() {
       }
 
       if (sanitasiRes.data) {
-        sanitasiRes.data.forEach((s: any) => {
+        const rows = sanitasiRes.data as unknown as SanitasiQueryRow[];
+        rows.forEach((s) => {
           formattedReminders.push({
             id: `s-${s.id}`,
             title: `Sanitasi ${s.kandang?.nama_kandang || 'Kandang'}`,
-            time: s.tanggal_berikutnya === today ? 'Hari ini' : new Date(s.tanggal_berikutnya).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'}),
+            time: s.tanggal_berikutnya === today ? 'Hari ini' : formatDateIndo(s.tanggal_berikutnya),
             dateObj: new Date(s.tanggal_berikutnya),
             type: 'sanitation',
             icon: SprayCan,
@@ -129,11 +197,12 @@ export default function DashboardPage() {
       }
 
       if (lahirRes.data) {
-        lahirRes.data.forEach((l: any) => {
+        const rows = lahirRes.data as unknown as ReproduksiQueryRow[];
+        rows.forEach((l) => {
           formattedReminders.push({
             id: `l-${l.id}`,
             title: `Estimasi Lahir: ${l.babi_betina?.kode_babi}`,
-            time: l.estimasi_lahir === today ? 'Hari ini' : new Date(l.estimasi_lahir).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'}),
+            time: l.estimasi_lahir === today ? 'Hari ini' : formatDateIndo(l.estimasi_lahir),
             dateObj: new Date(l.estimasi_lahir),
             type: 'birth',
             icon: Baby,
@@ -143,10 +212,11 @@ export default function DashboardPage() {
         });
       }
 
+      // Mengurutkan agenda berdasarkan waktu terdekat dan mengambil 5 teratas
       formattedReminders.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
       setRemindersList(formattedReminders.slice(0, 5));
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+    } catch (error: unknown) {
+      // Penanganan kesalahan diam tanpa 'console.log' testing
     } finally {
       setLoading(false);
     }
@@ -162,6 +232,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header Dashboard */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
         <p className="text-muted-foreground mt-2">
@@ -169,7 +240,7 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Stats Grid */}
+      {/* Grid Statistik Ringkas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (
           <Link
@@ -199,7 +270,7 @@ export default function DashboardPage() {
                   </h3>
                 )}
                 {loading ? (
-                   <div className="h-4 w-24 bg-secondary animate-pulse rounded mt-2"></div>
+                  <div className="h-4 w-24 bg-secondary animate-pulse rounded mt-2"></div>
                 ) : (
                   <p className="mt-2 text-xs text-muted-foreground">{stat.hint}</p>
                 )}
@@ -212,9 +283,8 @@ export default function DashboardPage() {
         ))}
       </div>
 
+      {/* Panel Agenda Terdekat */}
       <div className="grid grid-cols-1 gap-6">
-
-        {/* Reminders Panel */}
         <div className="bg-card border border-border rounded-xl shadow-sm p-6 flex flex-col">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
@@ -239,7 +309,6 @@ export default function DashboardPage() {
                   key={reminder.id}
                   className="flex items-start gap-4 p-3 rounded-lg hover:bg-secondary transition-colors border border-transparent hover:border-border cursor-pointer"
                   onClick={() => {
-                    // Simple navigation based on reminder type
                     if (reminder.type === 'vaccine' || reminder.type === 'birth') {
                       router.push('/dashboard/babi');
                     } else if (reminder.type === 'sanitation') {
